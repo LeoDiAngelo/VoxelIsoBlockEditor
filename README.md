@@ -6,8 +6,6 @@ The project focuses on an isometric block-building workflow with hardware-accele
 
 **Author:** Lennart Svensson
 
-<img width="3820" height="1975" alt="image" src="https://github.com/user-attachments/assets/bfaf92c2-7f5e-4c9f-a89a-dfbe40b032ef" />
-
 ---
 
 ## Highlights
@@ -29,6 +27,8 @@ The project focuses on an isometric block-building workflow with hardware-accele
 - Async chunk mesh build pipeline with cancellation/latest-build behavior.
 - Stress-test modes for large scenes, including packed 256³ surface rendering.
 - Dedicated Block Shape Library preview window.
+
+<img width="3840" height="2064" alt="image" src="https://github.com/user-attachments/assets/aacfa55a-2157-435b-8c51-8992592426f2" />
 
 ---
 
