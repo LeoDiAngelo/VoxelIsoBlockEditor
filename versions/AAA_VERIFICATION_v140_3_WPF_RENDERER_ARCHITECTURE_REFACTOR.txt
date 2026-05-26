@@ -1,0 +1,59 @@
+IsoBlockCharacterEditor v140.3 - Renderer architecture refactor
+
+Base: v140.2 stable baseline. No v141-v144 pan/scroll experiments included.
+
+What changed:
+1. ChunkedVoxelRenderer reduced from ~1878 lines to ~596 lines.
+   - It now owns renderer-facing state, public dirty APIs, draw setup and stats only.
+   - CPU mesh building, procedural full-grid build, async scheduling and GPU chunk storage are split out.
+
+2. New CPU-build classes:
+   - ChunkMeshBuilder.cs
+     Sparse snapshot build, greedy mesh generation, special shape append, common mesh primitives.
+   - ProceduralFullGridBuilder.cs
+     Named entry point for packed 256^3 procedural full-grid builds.
+
+3. New render scene-source strategies:
+   - IVoxelSceneSource
+   - SparseVoxelSceneSource
+   - PackedFullGridSceneSource
+   These own immutable build snapshots / pooled arrays while queued or running.
+   This moves normal-vs-packed build selection away from ChunkedVoxelRenderer internals.
+
+4. New build scheduler:
+   - ChunkBuildScheduler.cs
+   Owns the single background build lane, scene cancellation, pending result publication,
+   and stale-result dropping.
+   ChunkedVoxelRenderer no longer contains _buildRunning, _buildSerial, _pendingResult,
+   _pendingLock or CancellationTokenSource build plumbing.
+
+5. New GPU chunk store:
+   - RenderChunkStore.cs
+   Owns live RenderChunk objects, DynamicVertexBuffer lifetime, chunk map/list, GPU uploads,
+   and chunk draw enumeration.
+
+6. Shared render flags:
+   - RenderSurfaceFlags.cs
+   Keeps sparse/procedural surface mask constants in one place.
+
+7. GC policy removed from editor/render paths:
+   - ChunkedVoxelRenderer no longer changes GCSettings.LargeObjectHeapCompactionMode.
+   - MainWindow.ScheduleLargeStressSceneCompaction is intentionally a no-op.
+   Runtime GC/LOH policy is left to the CLR.
+
+8. Kept stable v140 behavior:
+   - No pan/scroll changes from v141-v144.
+   - Save/load unchanged.
+   - Selection unchanged.
+   - Paint/delete unchanged.
+   - Undo/redo unchanged.
+   - Stress buttons unchanged.
+   - Packed 256^3 procedural rendering behavior preserved.
+
+Static checks performed:
+- No dotnet SDK available in this environment, so dotnet build could not be run here.
+- Zip validation performed after packaging.
+- Brace balance checked across .cs files.
+- Old renderer build gate fields removed from ChunkedVoxelRenderer.
+- RendererBuildTicket.cs removed because scheduler replaces it.
+- No LINQ was introduced in hot-path refactor code.

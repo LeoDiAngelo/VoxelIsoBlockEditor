@@ -1,0 +1,22 @@
+IsoBlockCharacterEditor v134 - WPF fast test switch build-gate fix
+
+Issue fixed:
+- Rapidly switching between 10k/50k/100k/250k/256³ Full could leave the viewport empty.
+- The renderer stats could show Blocks > 0 but Chunks visible 0, Draw calls 0, Vertices 0.
+
+Root cause:
+- ResetForNewScene increments _buildSerial so an old cancelled worker is not allowed to set _buildRunning=false in its finally block.
+- That is correct for old-worker ownership, but ResetForNewScene did not clear _buildRunning for the new scene.
+- If the user switched tests while a build was running, the new scene could inherit _buildRunning=true forever, so EnsureBuilt/EnsureProceduralFullGridBuilt returned early and never rebuilt geometry.
+
+Fix:
+- ResetForNewScene now sets _buildRunning=false after advancing _buildSerial.
+- Dropped pending build results are cleared at the scene boundary.
+- SceneId/Generation/CancellationToken protection remains intact.
+- No change to VoxelWorld, save/load, picking, selection, commands, partial delete rebuild, tight bounds, or camera-facing surface filtering.
+- No LINQ added.
+
+Expected behavior:
+- Fast switching between stress buttons should always trigger the correct new scene build.
+- The model should no longer disappear permanently after rapid test switching.
+- Old cancelled builds still cannot publish into the new scene.

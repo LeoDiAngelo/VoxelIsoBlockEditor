@@ -1,0 +1,24 @@
+IsoBlockCharacterEditor v140.6 - Block Shape Library Preview Size
+
+Base: v140.5 WPF viewport component refactor.
+
+Purpose:
+- Match the requested Block Shape Library preview framing shown in the screenshot.
+- Keep the 1x1x1 block readable and centered with visible empty space around the bounding box.
+
+Changes:
+- CameraController now owns named constants for the canonical Block Shape Library preview framing:
+  - LibraryPreviewModelScale = 1.0f
+  - LibraryPreviewOrthoHeight = 1.45f
+- PreviewOrthoHeight default now uses the same LibraryPreviewOrthoHeight constant.
+- CenterOnPreviewBlock() resets PreviewOrthoHeight to the same constant every time the library preview is centered.
+
+Why this approach:
+- The library preview uses orthographic projection, so PreviewOrthoHeight is the correct camera-framing control.
+- The model itself remains at 1.0 scale; the world/model geometry is not changed.
+- The fix is isolated to preview framing and does not affect editor scene scale, save/load, selection, mesh building, pan/scroll, packed full-grid mode, or runtime rendering logic.
+
+Validation:
+- No LINQ added.
+- No pan/scroll experiment code added.
+- Zip archive validated with unzip -t.

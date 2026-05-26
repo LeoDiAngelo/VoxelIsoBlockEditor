@@ -1,0 +1,33 @@
+AAA verification v112
+
+Base: v111 scene switch/save fix.
+
+Fixes in this build:
+1. Viewport stats are reset on explicit normal scene switches too, not only when leaving packed 256^3 mode.
+   VoxelEditorControl.UseNormalPieceScene now uses ChunkedVoxelRenderer.ResetForNewScene(markDirty:true)
+   for New, Sample, 10k, 50k, 100k, and 250k scene boundaries.
+
+2. New scene is now a bulk scene operation.
+   It clears pieces, selection, VoxelWorld and indexes without per-item invalidation noise, then refreshes with a clean renderer state.
+
+3. Paint 1000 / Select 1000 / Random edit burst now operate on visible surface pieces in normal stress scenes.
+   The old implementation used the first 1000 objects in generation order; in large solid stress cubes those pieces were often hidden/internal/bottom cells, so the buttons appeared to do nothing.
+
+4. Paint 1000 / Select 1000 / Random edit burst now also work in packed 256^3 full mode.
+   They use deterministic real surface cells on top/right/front faces and create only sparse overlay pieces where needed. They do not allocate 16.7M BlockPiece objects.
+
+5. Static sanity checks performed:
+   - MainWindow.xaml.cs braces balanced
+   - VoxelEditorControl.cs braces balanced
+   - ChunkedVoxelRenderer.cs braces balanced
+   - VoxelWorld.cs braces balanced
+   - Models.cs braces balanced
+   - no "Ray ray =" declaration remains
+
+Expected behavior to test:
+- New should immediately show 0 blocks / 0 chunks, not stale 250k or 256^3 stats.
+- Switching 256^3 -> 250K -> New -> 256^3 should not keep stale viewport stats.
+- Paint 1000 on 250K should visibly paint surface cells.
+- Select 1000 on 250K should show selection boxes on visible shell cells.
+- Random edit burst on 250K should visibly alter visible shell cells.
+- Paint 1000 / Select 1000 / Random edit burst should also visibly affect 256^3 Full using sparse surface overlays.

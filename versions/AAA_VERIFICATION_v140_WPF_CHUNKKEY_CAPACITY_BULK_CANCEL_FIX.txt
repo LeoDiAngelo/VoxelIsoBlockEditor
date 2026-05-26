@@ -1,0 +1,23 @@
+v140 WPF chunk-key/capacity/bulk/cancellation cleanup
+
+Verified changes:
+1. CoordinateHelper.ChunkKey now uses 8-bit x/y/z packing, aligned with CellKey.
+   - TryChunkKey(...) validates against the active chunk grid.
+   - ChunkKeyUnsafe(...) is the explicit fast path for already-validated chunk coordinates.
+   - Old 10-bit masks/shifts (0x3FF, <<20, <<10) are removed from active code.
+
+2. Dirty-chunk + six-neighbour HashSet capacity is no longer dirtyCount * 7.
+   - CoordinateHelper.EstimateChunkAndSixNeighbourCapacity(...) accounts for edge and corner chunks.
+   - Applied in ChunkedVoxelRenderer.BuildSnapshot and VoxelWorld snapshot paths.
+
+3. AddSampleCharacter now builds a temporary List<BlockPiece> and enters the same ReplacePiecesBulk path used by load/stress scenes.
+   - SpatialGridIndex, VoxelWorld and _pieceById rebuild consistently through one bulk path.
+
+4. Procedural full-grid builds now check cancellation inside the per-surface mask loops and deleted-cell cavity-face loop.
+   - BuildProceduralFullGridSurfaceChunk receives the CancellationToken.
+   - AddDeletedCellCavityFaces receives the CancellationToken.
+   - Deleted-cell HashSet construction also checks cancellation for large delete snapshots.
+
+5. No LINQ added. Static grep checked for Select/Where/Average/FirstOrDefault/ToList/OrderBy/Any/All/Enumerable.
+
+Note: dotnet CLI was not available in the execution container, so this package was statically verified here rather than compiled in-container.

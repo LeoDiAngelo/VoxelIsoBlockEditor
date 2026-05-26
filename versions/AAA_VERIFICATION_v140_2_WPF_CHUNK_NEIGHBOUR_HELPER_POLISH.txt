@@ -1,0 +1,18 @@
+IsoBlockCharacterEditor v140.2 - Chunk neighbour helper polish
+
+Scope:
+- Built from v140.1 stable baseline.
+- No viewport pan experiments from v141-v144 are included.
+- No behavior changes intended.
+
+Changes:
+- VoxelWorld duplicated dirty chunk + six-neighbour filter expansion was extracted into:
+  AddChunkAndSixNeighboursIfInside(...)
+- CreateRenderSnapshot(...) and CreatePooledRenderSnapshot(...) now call the same helper.
+- The helper intentionally keeps seven explicit AddIfInside(...) calls.
+- No LINQ, offset arrays, foreach tuple iteration, allocations, or behavioural simplifications were added.
+- AddIfInside(...) still uses the v140.1 unsigned bounds-check and ChunkKeyUnsafe(...) after validation.
+
+Reason:
+- Removes duplicated hot-path code while preserving the exact filter semantics.
+- Keeps the code easier to maintain without making the hot path clever or allocation-heavy.

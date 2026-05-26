@@ -1,0 +1,26 @@
+IsoBlockCharacterEditor v133 - WPF packed full-grid center camera fix
+
+Fix:
+- CenterOnModel now special-cases packed 256^3 full-grid mode.
+- Packed full-grid scenes are procedural. _pieces only contains sparse overlays/deleted-cell helpers and must not be used as the model bounds.
+- Added CenterOnPackedFullGrid(). It frames the real dense volume bounds instead of sparse pieces.
+- Resets workspace offset when centering.
+- Computes target from packed full-grid size and clamps camera distance outside the volume.
+
+Why:
+- After deleting/creating holes in 256^3 mode, Center Camera could center on sparse overlay/deleted helper pieces.
+- That could put the camera/target visually inside the hollow/cavity.
+
+Unchanged:
+- VoxelWorld
+- save/load
+- picking
+- select/paint/delete
+- undo/redo
+- partial rebuild
+- camera-facing surface filtering
+- tight chunk bounds
+- no LINQ added
+
+Static checks:
+- Braces checked for .cs files.

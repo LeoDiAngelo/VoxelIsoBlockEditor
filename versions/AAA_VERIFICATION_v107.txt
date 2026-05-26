@@ -1,0 +1,24 @@
+IsoBlockCharacterEditor v107 - AAA visual correctness fix
+
+Base: v106/v97 line, minimal targeted changes only.
+
+Verified by static checks in this environment:
+- No local declaration "Ray ray =" remains in VoxelEditorControl.cs.
+- Packed 256^3 pick uses Ray packedRay.
+- Normal voxel pick uses Ray voxelRay.
+- Braces are balanced in VoxelEditorControl.cs, IsoBlockMeshBuilder.cs, ChunkedVoxelRenderer.cs and MainWindow.xaml.cs.
+
+Fixes:
+1. Sparse edited cells in 256^3 mode now occlude/hide the same cell in the dense packed base.
+   This prevents z-fighting where a painted/rotated voxel showed two colors on the same side.
+
+2. Immediate overlay rendering uses the same lighting formula as chunk-baked geometry.
+   This removes inconsistent top/side brightness between normal chunk mesh and sparse overlay voxels.
+
+3. Green bevel edges in 256^3 mode now draw a full exterior surface lattice/grid on the packed volume,
+   not only a single selected voxel. It avoids drawing 16.7M individual boxes but still gives the correct
+   voxel-style visible surface wire feel.
+
+4. Selected cells still get a yellow selection box on top of the green exterior lattice.
+
+5. Dense base rebuild is marked only when packed occlusion state changes: deleted cells or sparse overlay cells.

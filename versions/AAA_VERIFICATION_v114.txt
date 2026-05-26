@@ -1,0 +1,27 @@
+AAA v114 cleanup
+
+Changes:
+1. Removed Alloc total from Viewport Info.
+   - GC.GetTotalAllocatedBytes is intentionally no longer displayed because it is a lifetime counter that only grows.
+   - Viewport Info still shows Managed live, Private memory, Working set, GC totals/deltas, build stats, frame and picking.
+
+2. Removed unstable/non-essential stress operation buttons from the UI:
+   - Paint 1000
+   - Select 1000
+   - Random edit burst
+
+3. Kept the actual size stress tests:
+   - 10k
+   - 50k
+   - 100k
+   - 250k
+   - 256^3 Full
+
+Static checks performed:
+- MainWindow.xaml.cs brace balance: OK
+- VoxelEditorControl.cs brace balance: OK
+- ChunkedVoxelRenderer.cs brace balance: OK
+- VoxelWorld.cs brace balance: OK
+- Models.cs brace balance: OK
+- XAML no longer contains Paint 1000 / Select 1000 / Random edit burst buttons.
+- MainWindow.xaml.cs no longer displays Alloc total.

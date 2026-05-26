@@ -1,0 +1,33 @@
+IsoBlockCharacterEditor v125 WPF 256 camera-facing surface filter
+
+Base:
+- Built from v124_wpf_60fps_tuning / v123 WPF editor line.
+- No MonoGame-only/WindowsDX migration included.
+- No VoxelWorld/save/load/editor command changes.
+
+Implemented:
+1. Added procedural 256^3 surface flags per generated RenderChunk:
+   - +X, -X, +Y, -Y, +Z, -Z.
+
+2. Added draw-time camera-facing surface filtering for packed 256^3 full grid:
+   - Uses ViewDirectionFromTargetToCamera() from VoxelEditorControl.
+   - Calculates which cube sides face the camera.
+   - Skips chunks whose procedural surface mask contains only non-facing sides.
+
+3. Normal editor rendering is unchanged:
+   - Regular VoxelWorld scenes still use ChunkedVoxelRenderer.Draw(...).
+   - Selection, paint, delete, build, save/load, picking and undo/redo are not touched.
+
+4. Deleted-cell cavity safety:
+   - Chunks with cavity faces from deleted cells are marked SurfaceAll so holes are not incorrectly culled.
+
+Expected result:
+- In 256^3 Full, draw calls should drop when the camera sees only 2-3 outer cube sides.
+- FPS should be more stable in WPF/MonoGame interop.
+- 256^3 mesh build stats remain similar because this optimization is draw-time, not build-time.
+
+Static checks performed:
+- .cs brace balance checked.
+- No old "Ray ray =" issue reintroduced.
+- No changes to binary save/load format.
+- No changes to VoxelWorld layout.

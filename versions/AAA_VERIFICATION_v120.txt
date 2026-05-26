@@ -1,0 +1,11 @@
+IsoBlockCharacterEditor v120 - AddPolygonOutward LINQ cleanup
+
+Changes:
+- Removed LINQ Average() calls from IsoBlockMeshBuilder.AddPolygonOutward.
+- Replaced with explicit for-loop summing X/Y/Z.
+- No renderer/editor/VoxelWorld behavior changes.
+
+Static checks performed:
+- IsoBlockMeshBuilder.cs no longer contains Average(.
+- No old Ray ray = regression found.
+- Basic brace balance checked for .cs files.

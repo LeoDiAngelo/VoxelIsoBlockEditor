@@ -1,0 +1,13 @@
+IsoBlockCharacterEditor v105 AAA verification
+
+Base: v97/v104 line.
+Goal: minimal, careful fix for 256^3 pick/editor interaction and compile issue.
+
+Static checks performed in this package:
+- TryPickBlock uses separate local names: packedRay and voxelRay.
+- No local declaration 'Ray ray =' remains in VoxelEditorControl.cs.
+- Packed 256^3 pick path uses ToLogicalRay(GetPickRay(p)) once.
+- Normal editor pick path uses ToLogicalRay(GetPickRay(p)) once.
+- v97 ordinary editor behaviour is preserved outside packed 256^3 mode.
+
+Note: dotnet SDK is not installed in the sandbox, so Visual Studio is still the final compile check.

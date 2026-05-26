@@ -1,0 +1,25 @@
+IsoBlockCharacterEditor v129 WPF - remove false unculled fallback
+
+Problem:
+- After tight chunk bounds + camera surface filtering, DrawBlocks still had a safety fallback:
+  if drawCalls == 0 -> draw chunks again with frustum culling disabled.
+- That made Viewport Info report visible chunks/draw calls even when the model was outside the viewport.
+- In 256^3 Full this could show many draw calls while the screen looked empty.
+
+Fix:
+- Removed the unculled fallback from packed 256^3 drawing.
+- Removed the unculled fallback from normal VoxelWorld drawing.
+- A zero draw-call result is now allowed and correctly means: no chunk passed frustum/surface filtering for the current camera.
+
+Unchanged:
+- VoxelWorld
+- save/load
+- build/select/paint/delete
+- undo/redo
+- binary format
+- camera-facing surface filtering
+- tight mesh bounds
+
+Expected behavior:
+- Model visible: Viewport Info shows visible chunks/draw calls > 0.
+- Model fully panned/zoomed out of viewport: Viewport Info can show visible chunks/draw calls = 0.

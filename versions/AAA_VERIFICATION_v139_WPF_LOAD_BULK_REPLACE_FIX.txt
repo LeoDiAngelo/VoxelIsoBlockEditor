@@ -1,0 +1,30 @@
+IsoBlockCharacterEditor v139 - WPF load bulk replace fix
+
+Scope:
+- Fixed ApplyLoadedScene so loading large saved scenes no longer calls AddPieceInternal once per block.
+- Large saves now build a validated List<BlockPiece> first, then call ReplacePiecesBulk once.
+- ReplacePiecesBulk performs one ObservableCollection Reset notification and rebuilds SpatialGridIndex, VoxelWorld and _pieceById once.
+
+Changed:
+1. ApplyLoadedScene
+   - Computes effective grid size before validation.
+   - Uses CreateValidatedLoadedPieces(scene.Pieces, _gridSize).
+   - Calls ReplacePiecesBulk(validatedPieces).
+   - Removed per-piece AddPieceInternal loop during load.
+
+2. CreateValidatedLoadedPieces
+   - Skips out-of-bounds coordinates via CoordinateHelper.TryCellKey.
+   - Skips duplicate IDs.
+   - Skips duplicate occupied cells to keep VoxelWorld and SpatialGridIndex aligned.
+   - Uses explicit for-loops. No LINQ.
+
+Unchanged:
+- Normal AddPieceInternal editing path.
+- Save/load binary format.
+- VoxelWorld storage.
+- Renderer, picking, selection, paint/delete, undo/redo.
+- Stress scene bulk path.
+
+Static checks:
+- No LINQ query calls added.
+- Braces checked by simple parser.

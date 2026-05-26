@@ -1,0 +1,24 @@
+# v110 AAA VoxelWorld Build/Partial Rebuild Fix
+
+Base: v109_AAA_VoxelWorld_core.
+
+Problem fixed:
+- Normal stress/editor scenes such as 250K could create large visual holes when building/adding blocks.
+- The renderer produced dirty chunk keys with a 10-bit layout: (cx << 20) | (cy << 10) | cz.
+- VoxelWorld decoded those dirty keys with an older 8-bit layout: (cx << 16) | (cy << 8) | cz.
+- Result: partial rebuild snapshot pulled the wrong chunks from VoxelWorld, so ChunkedVoxelRenderer replaced the correct mesh chunks with missing/incorrect meshes.
+
+Fix:
+- VoxelWorld.ChunkKey now uses the same 10-bit layout as ChunkedVoxelRenderer.
+- VoxelWorld.DecodeChunkKey now decodes the same 10-bit layout.
+- This keeps dirty chunk selection, VoxelWorld snapshots, renderer chunk inputs, and GPU buffer replacement in the same coordinate space.
+
+Expected behavior:
+- Build/add in 10K/50K/100K/250K normal scenes should no longer carve large holes.
+- 16^3, 32^3, and 256^3 grid sizes use the same chunk-key semantics.
+- 256^3 Full packed/procedural test remains unchanged.
+
+Static checks:
+- VoxelWorld.ChunkKey and ChunkedVoxelRenderer.ChunkKey both use (x << 20) | (y << 10) | z.
+- VoxelWorld.DecodeChunkKey and ChunkedVoxelRenderer.DecodeChunkKey both use >>20, >>10, and 0x3FF.
+- VoxelEditorControl has one TryPickGrid declaration.

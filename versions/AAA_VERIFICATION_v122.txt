@@ -1,0 +1,19 @@
+# AAA Verification v122 - Safe 60 FPS pass
+
+Changes:
+1. VoxelEditorControl constructor sets IsFixedTimeStep = false.
+2. Added rolling actual FPS counter in VoxelEditorControl based on real Draw calls / elapsed time.
+3. Viewport Info now displays FPS separately from the render CPU frame time.
+
+Not changed intentionally:
+- No vsync disabling.
+- No CompositionTarget.Rendering forced invalidation.
+- No SynchronizingObject property.
+- No renderer/VoxelWorld/editor-command changes.
+
+Static checks performed:
+- VoxelEditorControl.cs braces balanced.
+- MainWindow.xaml.cs braces balanced.
+- No old "Ray ray =" declaration found.
+- Stress buttons Paint 1000 / Select 1000 / Random edit burst remain removed.
+- Alloc total remains removed from Viewport Info.

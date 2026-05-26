@@ -1,0 +1,14 @@
+v124 WPF 60 FPS tuning based on v123_fps_compilefix.
+
+Changes:
+1. MainWindow now attaches to CompositionTarget.Rendering while open and invalidates only the viewport.
+   This asks WPF to present the MonoGame surface on every compositor tick, normally 60 Hz.
+2. The stats DispatcherTimer is moved to DispatcherPriority.Background and 500 ms interval.
+   This reduces UI/layout interference with the composition thread.
+3. No renderer, VoxelWorld, save/load, picking, commands, grid, selection or WPF layout behavior was changed.
+4. No IsFixedTimeStep assignment was added. WpfGame exposes it as read-only and already false.
+5. No VSync-off hack was added.
+
+Expected:
+- Actual FPS should be closer to the display refresh rate when the window has focus.
+- CPU may rise slightly because the viewport is now invalidated continuously while visible.

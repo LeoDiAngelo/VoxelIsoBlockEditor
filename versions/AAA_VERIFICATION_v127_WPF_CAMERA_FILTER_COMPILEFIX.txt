@@ -1,0 +1,17 @@
+IsoBlockCharacterEditor v127 WPF camera filter compile fix
+
+Base: v126_wpf_camera_filter_all_safe
+
+Fix:
+- Removed CS0136 in VoxelEditorControl.DrawBlocks.
+- The packed 256^3 branch now uses packedDirectionFromGridToCamera.
+- The normal editor branch now uses normalDirectionFromGridToCamera.
+- No renderer, VoxelWorld, save/load, picking, selection, or editor command logic was changed.
+
+Static checks performed:
+- No duplicate local variable named directionFromGridToCamera remains in DrawBlocks.
+- Braces balanced in .cs files by lightweight static scan.
+- The camera-facing filter remains active for both packed full grid and normal chunks.
+
+Note:
+- dotnet build could not be run in this environment because the .NET SDK is unavailable here.

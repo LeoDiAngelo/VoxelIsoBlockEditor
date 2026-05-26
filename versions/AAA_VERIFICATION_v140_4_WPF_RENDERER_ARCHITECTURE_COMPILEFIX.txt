@@ -1,0 +1,31 @@
+IsoBlockCharacterEditor v140.4 - renderer architecture compile fix
+
+Base: v140.3 renderer architecture refactor.
+
+Fix:
+- ChunkMeshBuilder now owns local aliases for CoordinateHelper chunk constants:
+  - ChunkSize
+  - ChunkShift
+  - ChunkMask
+  - ChunkVoxelCount
+
+Reason:
+- The v140.3 refactor moved CPU mesh-building code out of ChunkedVoxelRenderer.
+- The moved code still referenced private constants that only existed inside ChunkedVoxelRenderer.
+- Visual Studio therefore reported CS0103 errors in ChunkMeshBuilder for ChunkSize, ChunkShift, ChunkMask and ChunkVoxelCount.
+
+Scope:
+- Compile fix only.
+- No pan/scroll changes.
+- No rendering behavior changes.
+- No chunk key layout changes.
+- No editor model, save/load, undo/redo, selection, paint/delete changes.
+- No LINQ added.
+
+Validation performed in this environment:
+- Static grep confirmed old missing identifiers are now locally defined in ChunkMeshBuilder.
+- Brace-balance check over all .cs files.
+- ZIP archive validation.
+
+Note:
+- dotnet build could not be run in this container because the .NET SDK is not installed here.

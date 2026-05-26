@@ -1,0 +1,17 @@
+IsoBlockCharacterEditor v118 - Compile fix for Models.cs
+
+Base: v117 structural cleanup.
+
+Fix:
+- Removed the stray [MethodImpl(MethodImplOptions.AggressiveInlining)] attribute that was left directly before the closing brace of SpatialGridIndex in Models.cs.
+- This fixes CS1519: Invalid token '}' in a member declaration.
+
+Static checks performed:
+- Braces balanced in all .cs files.
+- No local declaration 'Ray ray =' remains in .cs files.
+- CoordinateHelper remains the central key/index helper.
+- Stress buttons Paint 1000 / Select 1000 / Random edit burst remain removed.
+- Alloc total remains removed from Viewport Info.
+
+Note:
+- dotnet SDK is not installed in this sandbox, so a real dotnet build could not be executed here.

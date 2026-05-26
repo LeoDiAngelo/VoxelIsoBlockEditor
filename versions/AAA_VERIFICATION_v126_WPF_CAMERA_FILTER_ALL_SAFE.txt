@@ -1,0 +1,26 @@
+IsoBlockCharacterEditor v126 WPF camera-facing filter extended safely
+
+Base:
+- v125_wpf_256_camera_surface_filter
+
+Changes:
+1. Camera-facing surface filtering is no longer limited to 256^3 procedural full-grid.
+2. ChunkedVoxelRenderer now exposes DrawCameraFiltered(...), used by normal editor/stress scenes too.
+3. Normal greedy full-cube chunk builds now produce a SurfaceMask based on emitted face directions:
+   +X, -X, +Y, -Y, +Z, -Z.
+4. Normal DrawBlocks now uses DrawCameraFiltered for non-packed scenes.
+5. Special/authored shapes are marked SurfaceAll so they are never hidden incorrectly.
+6. Procedural 256^3 still uses the same camera-facing draw path.
+7. Fallback remains: if filtered/frustum draw returns zero draw calls for a non-empty scene, the old unfiltered Draw path is used.
+
+Important safety decision:
+- The filter applies to normal greedy full-cube chunk meshes.
+- Chunks containing special shapes/slopes/corner-cuts are marked SurfaceAll and remain fully drawn.
+- This keeps editor correctness while reducing draw calls for solid/full-cube stress scenes and large regular voxel models.
+
+Static checks:
+- New method DrawCameraFiltered exists.
+- DrawProceduralFullGridCameraFiltered delegates to DrawCameraFiltered.
+- BuildChunkCpu returns ChunkMeshData with surfaceMask.
+- Normal VoxelEditorControl.DrawBlocks calls DrawCameraFiltered.
+- No WPF/MonoGame editor command logic changed.

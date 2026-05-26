@@ -1,0 +1,1 @@
+v108 fixes selection color by keeping packed 256^3 selections virtual until edit, uses procedural original color for virtual cells, materializes only before paint/rotate/flip/delete, and lifts packed green bevel lattice outside surfaces to avoid depth hiding.

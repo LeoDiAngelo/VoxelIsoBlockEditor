@@ -1,0 +1,36 @@
+IsoBlockCharacterEditor v138 - WPF ItemsSource compile fix
+
+Base: v137_wpf_stress_switch_no_freeze
+
+Fix:
+- ReplacePiecesBulk stored PiecesList.ItemsSource as object?, then assigned it back to ItemsSource.
+- WPF ItemsControl.ItemsSource expects System.Collections.IEnumerable.
+- Changed oldItemsSource type from object? to IEnumerable?.
+- Added using System.Collections.
+
+Preserved:
+- BulkObservableCollection ReplaceAll path
+- Stress-switch freeze fix
+- VoxelWorld
+- renderer
+- save/load
+- picking
+- selection
+- paint/delete/undo/redo
+- packed 256 full partial rebuild
+- camera-facing filtering
+
+Static checks performed:
+- .cs brace balance OK
+- No LINQ query calls found:
+  .Select(
+  .Where(
+  .Average(
+  .FirstOrDefault(
+  .LastOrDefault(
+  .ToList(
+  .OrderBy(
+  .Any(
+  .All(
+  Enumerable.
+  using System.Linq

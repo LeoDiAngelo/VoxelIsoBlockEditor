@@ -1,0 +1,21 @@
+IsoBlockCharacterEditor v113 - binary save + real stress operations
+
+Base: v112.
+
+Fixes:
+1. Save now writes a real binary .isoblocks file for normal scenes and packed 256^3 scenes.
+   Binary format stores grid size, packed-full flag, packed deleted cells, and all sparse/editor pieces.
+   JSON loading is kept only as backward compatibility for older saved files.
+2. Packed 256^3 Paint 1000, Select 1000, and Random edit burst now materialize real sparse overlay pieces in the VoxelWorld.
+   They no longer create throwaway virtual BlockPiece instances that normal commands cannot operate on.
+3. Select 1000 in packed mode selects real pieces, so Paint/Delete/Rotate/Flip/Copy can operate normally afterwards.
+4. Paint 1000 and Random edit burst reuse existing overlay pieces at the same cell instead of adding duplicate pieces.
+5. Invalidation remains chunk/cell based; no forced 16.7M object conversion is introduced.
+
+Static checks performed:
+- MainWindow.xaml.cs braces balanced.
+- VoxelEditorControl.cs braces balanced.
+- ChunkedVoxelRenderer.cs braces balanced.
+- VoxelWorld.cs braces balanced.
+- Models.cs braces balanced.
+- No old "Ray ray =" declaration exists in VoxelEditorControl.cs.

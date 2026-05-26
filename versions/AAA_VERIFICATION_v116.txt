@@ -1,0 +1,18 @@
+IsoBlockCharacterEditor v116 - compile fix for viewport StringBuilder
+
+Base: v115_AAA_hotpath_cleanup.
+
+Fixed:
+- Added missing private readonly StringBuilder _viewportInfoBuilder = new(512); field in MainWindow.xaml.cs.
+- Kept the v115 StringBuilder-based Viewport Info path.
+- No architecture changes.
+- No stress-test button changes.
+- Alloc total remains removed.
+
+Static checks performed:
+- MainWindow.xaml.cs brace balance = 0.
+- VoxelEditorControl.cs brace balance = 0.
+- ChunkedVoxelRenderer.cs brace balance = 0.
+- VoxelWorld.cs brace balance = 0.
+- Models.cs brace balance = 0.
+- _viewportInfoBuilder has one field declaration and one use in RefreshEditorState.

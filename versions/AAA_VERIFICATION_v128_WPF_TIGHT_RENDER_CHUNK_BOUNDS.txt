@@ -1,0 +1,39 @@
+IsoBlockCharacterEditor v128 WPF tight render chunk bounds
+
+Goal:
+- Fix false-positive frustum culling for small/sparse models.
+- When the model is panned/zoomed out of the viewport, visible chunks and draw calls should now drop correctly instead of remaining visible just because the whole 32^3 chunk box intersects the camera frustum.
+
+Changes:
+1. ChunkedVoxelRenderer now computes RenderChunk bounds from actual emitted mesh vertices.
+   - Procedural 256^3 chunks use tight bounds.
+   - Normal VoxelWorld/greedy chunks use tight bounds.
+   - Special-shape chunks also use actual emitted mesh vertex bounds.
+
+2. Old chunk bounds are kept as fallback only when a chunk has zero vertices.
+
+3. Tiny epsilon expansion is applied to tight bounds.
+   This prevents zero-thickness plane chunks, especially procedural surface chunks, from being too fragile in frustum tests.
+
+4. No changes to:
+   - VoxelWorld
+   - save/load
+   - selection
+   - build/paint/delete/rotate/flip
+   - undo/redo
+   - binary format
+   - camera-facing surface filtering logic
+
+Expected behavior:
+- Small sample character visible: visible chunks/draw calls are normally 1-2.
+- Small sample character panned outside view: visible chunks/draw calls can drop toward 0.
+- 256^3 Full still benefits from camera-facing surface filtering.
+- The statistics now better match what is actually visible on screen.
+
+Static checks performed:
+- Braces balanced in all .cs files.
+- No old Ray ray = error found.
+- Patch limited to ChunkedVoxelRenderer.cs plus this verification note.
+
+Build note:
+- dotnet SDK is not available in this environment, so Visual Studio build should be the final compile check.

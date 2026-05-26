@@ -1,0 +1,37 @@
+IsoBlockCharacterEditor v115 - focused high-performance cleanup
+
+Base: v114 cleanup build.
+
+Implemented according to requested priority:
+1. Removed LINQ from hot editor paths:
+   - MoveSelected no longer uses Select/ToHashSet/ToList.
+   - Paint/Delete/Move use GetSelectionSnapshot() with a single controlled list allocation.
+   - Copy/Paste min/sort logic uses explicit loops and List.Sort.
+   - CenterOnModel uses explicit for-loop bounds, no Min/Max LINQ.
+
+2. Viewport Info now uses a reused StringBuilder:
+   - Avoids large interpolated string construction chains every refresh.
+   - Keeps the same displayed values as v114.
+
+3. Chunk buffer uploads now use DynamicVertexBuffer + SetDataOptions.Discard:
+   - Old GPU contents are explicitly discarded on rewrite.
+   - This is intended to reduce driver stalls during frequent dirty-chunk uploads.
+
+4. CellKey cache added to BlockPiece:
+   - X/Y/Z setters update a cached CellKey.
+   - VoxelWorld, SpatialGridIndex, pick-grid and selection-key paths use cached keys where possible.
+   - This reduces repeated coordinate packing in selection, picking and world lookups.
+
+5. Pooled vertex staging improved:
+   - PooledVertexBuffer growth rents from ArrayPool up to the safe retention limit.
+   - Huge LOH arrays are still deliberately not returned to ArrayPool to avoid memory retention after stress tests.
+
+Static checks performed:
+- Braces balanced in all .cs files.
+- Old Ray ray compile issue not present.
+- Removed stress buttons remain removed.
+- Alloc total remains absent from Viewport Info.
+- Modified RenderChunk uses DynamicVertexBuffer for Discard uploads.
+
+Note:
+- dotnet SDK is not available in this environment, so this is statically verified but not compiler-built here.

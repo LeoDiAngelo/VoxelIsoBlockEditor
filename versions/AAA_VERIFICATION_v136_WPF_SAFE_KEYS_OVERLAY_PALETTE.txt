@@ -1,0 +1,43 @@
+IsoBlockCharacterEditor v136 - WPF safe keys, cached packed overlay, stable palette
+
+Changes made on top of v135 WPF line:
+
+1. CoordinateHelper Try/Unsafe split
+   - Added TryCellKey(x,y,z,out key).
+   - Added TryCellKey(x,y,z,gridSize,out key).
+   - Added CellKeyUnsafe(x,y,z) for hot paths where bounds are guaranteed.
+   - CellKey now delegates to the unsafe fast path for existing valid-call compatibility.
+   - Updated risky neighbour/support paths to use TryCellKey instead of allowing -1 -> 255 wraparound.
+
+2. Sparse overlay cached/batched renderer for packed 256^3 mode
+   - Packed full-grid overlay pieces no longer use DrawPreviewBlocksImmediate in the main packed renderer path.
+   - Added cached DynamicVertexBuffer for sparse overlay blocks.
+   - Overlay mesh is rebuilt only when overlay data changes, not every frame.
+   - Overlay upload uses ArrayPool<VertexPositionColor> staging buffer and SetDataOptions.Discard.
+   - Overlay draw is one batched draw call instead of one immediate draw per overlay block.
+   - Library preview still uses direct immediate rendering intentionally because it is one preview block.
+
+3. Palette stability
+   - Replaced 8-bit/255 color VoxelWorld palette with stable 16-bit palette indexing.
+   - Supports up to 65,535 unique colors per VoxelWorld.
+   - Existing palette slots are never overwritten.
+   - If the palette is full, an explicit InvalidOperationException is thrown instead of silently corrupting old colors.
+   - Packed uint block layout changed internally only:
+       bits 0-15   = stable palette index
+       bits 16-19  = shape
+       bits 20-21  = rotation quarter
+       bit 22      = flip horizontal
+       bit 23      = flip vertical
+   - Save/load remains based on BlockPiece ColorHex/PackedColor, so binary scene format is not changed by this internal VoxelWorld packing.
+
+4. No editor feature changes
+   - VoxelWorld remains source of truth.
+   - Save/load, select, paint, delete, undo/redo, picking, partial packed delete rebuild and camera-facing filtering are preserved.
+
+Static checks done in this environment:
+   - No LINQ query patterns found in .cs files:
+     .Select( .Where( .Average( .FirstOrDefault( .LastOrDefault( .ToList( .OrderBy( .Any( .All( Enumerable. using System.Linq
+   - Braces balanced by simple static count in all .cs files.
+
+Note:
+   dotnet build could not be executed in this environment because the .NET SDK is not installed.

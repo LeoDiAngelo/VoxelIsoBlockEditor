@@ -1,0 +1,6 @@
+v131 compile fix
+
+Fixed CS0050 inconsistent accessibility in VoxelWorld.CreatePooledRenderSnapshot.
+Changed method from public to internal because PooledBlockDataSnapshot is an internal renderer-only snapshot type.
+No editor/render/save/load behavior changed.
+No LINQ added.

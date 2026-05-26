@@ -1,0 +1,61 @@
+IsoBlockCharacterEditor v140.5 - Viewport component refactor
+
+Base version:
+- Built on v140.4 renderer architecture compile fix.
+- No v141-v144 pan/scroll experiments are included.
+
+Purpose:
+- Reduce VoxelEditorControl responsibility without changing editor behavior.
+- Split camera, input and packed full-grid rendering out of the control.
+
+Changes:
+1. CameraController.cs
+   - Owns camera state: yaw, pitch, distance, target, workspace offset.
+   - Owns preview camera state.
+   - Owns arrow-key workspace pan velocity/state.
+   - Provides view/projection/world matrices.
+   - Provides centering, zoom, mouse-rotate, build-priority focus and logical-ray conversion.
+
+2. InputHandler.cs
+   - Owns WPF mouse capture and mouse gesture state.
+   - Handles preview mouse down/move/up/wheel events.
+   - Calls VoxelEditorControl through IVoxelEditorInputTarget callbacks.
+   - Removes mouse input state from VoxelEditorControl.
+
+3. PackedFullGridRenderer.cs
+   - Owns packed 256^3 mode state.
+   - Owns deleted-cell set and occlusion-set cache.
+   - Owns packed sparse overlay DynamicVertexBuffer.
+   - Owns packed full-grid edge drawing.
+   - Keeps procedural base drawing and sparse overlay rendering together.
+
+4. VoxelEditorControl.Picking.cs
+   - Moves picking/raycast/grid-click code into a partial file.
+   - Keeps behavior identical while reducing the main VoxelEditorControl file size.
+
+5. VoxelEditorControl.cs
+   - Main file is now focused on WPF/MonoGame lifecycle, draw orchestration,
+     grid/selection line drawing, data attachment and invalidation.
+   - Changed to partial class.
+   - Delegates camera state to CameraController.
+   - Delegates mouse input to InputHandler.
+   - Delegates packed full-grid rendering/state to PackedFullGridRenderer.
+
+Deliberately not changed:
+- No pan smoothing experiments.
+- No change to save/load.
+- No change to selection semantics.
+- No change to undo/redo.
+- No change to paint/delete semantics.
+- No change to chunk key layout.
+- No change to chunk mesh generation.
+- No change to build scheduler.
+- No LINQ added to hot paths.
+
+Static verification performed:
+- Checked brace balance across all .cs files.
+- Checked old moved field references are gone from VoxelEditorControl.
+- Zip structure validated after packaging.
+
+Build note:
+- dotnet SDK is not installed in the execution container, so dotnet build could not be run here.

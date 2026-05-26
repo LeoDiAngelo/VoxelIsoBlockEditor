@@ -1,0 +1,64 @@
+IsoBlockCharacterEditor v130 WPF - Snapshot/Priority Build/Throttle pass
+
+Base: v129 WPF true frustum stats fix.
+
+Implemented carefully without changing editor behavior:
+
+1. Render-state snapshot for dirty chunks
+   - Added RenderStateSnapshot.
+   - Mesh worker receives copied snapshot data and dirty chunk keys.
+   - Worker does not read live VoxelWorld or ObservableCollection.
+
+2. Pooled snapshot/build buffers
+   - Added PooledBlockDataSnapshot.
+   - VoxelWorld.CreatePooledRenderSnapshot(...) snapshots blocks into ArrayPool<BlockData> buffers.
+   - Dirty chunk key snapshots use ArrayPool<int>.
+   - Packed 256^3 deleted-cell snapshots use ArrayPool<int>.
+   - Existing PooledVertexBuffer remains in mesh build path.
+
+3. Prioritized mesh build queue
+   - Added ChunkBuildRequest.
+   - Full and partial chunk builds are sorted by distance to current viewport focus.
+   - Chunks closer to the camera target are built first.
+   - This improves perceived responsiveness when many chunks are dirty.
+
+4. SceneId/Generation/CancellationToken safety preserved
+   - RendererBuildTicket is still used.
+   - TryPublishBuildResult still validates SceneId and Generation.
+   - CancellationToken is checked before and during background build work.
+   - Old/cancelled builds still cannot publish into a newer scene.
+
+5. WPF render throttle / active-window throttle
+   - Active window: compositor tick can invalidate viewport for smooth interaction.
+   - Inactive window: invalidation is throttled to 5 FPS.
+   - Stats refresh is 500 ms active, 1000 ms inactive.
+
+6. Struct cleanup
+   - Added ChunkCoord record struct.
+   - Added CellCoord record struct.
+   - Added ChunkBuildRequest record struct.
+
+Static checks performed in this environment:
+- Braces balanced in all .cs files.
+- No LINQ query calls found:
+  .Select(
+  .Where(
+  .Average(
+  .FirstOrDefault(
+  .LastOrDefault(
+  .ToList(
+  .OrderBy(
+  .Any(
+  .All(
+  Enumerable.
+  using System.Linq
+- dotnet build could not be executed because dotnet SDK is not installed in the sandbox.
+
+No intentional changes to:
+- VoxelWorld semantics
+- binary save/load format
+- picking
+- selection
+- paint/delete/rotate/flip
+- undo/redo
+- green bevel/grid behavior

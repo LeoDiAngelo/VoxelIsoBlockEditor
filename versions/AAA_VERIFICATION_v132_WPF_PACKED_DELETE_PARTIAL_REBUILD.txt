@@ -1,0 +1,62 @@
+IsoBlockCharacterEditor v132 WPF packed-delete partial rebuild fix
+
+Purpose
+- Remove visible delete latency in 256^3 Full / packed full-grid mode.
+- Do not rebuild all 512 procedural chunks when deleting, undoing, or sparse-editing one voxel.
+- Preserve existing WPF editor behaviour, VoxelWorld, save/load, picking, selection and camera-facing filtering.
+
+Changes
+1. ChunkedVoxelRenderer
+   - Added MarkProceduralFullGridCellDirty(x,y,z,gridSize).
+   - Marks only the affected procedural chunk and chunk-boundary neighbours.
+   - Does not downgrade a pending full rebuild during scene/load/test switching.
+   - Keeps SceneId/Generation/CancellationToken protections unchanged.
+
+2. Procedural 256^3 build pipeline
+   - EnsureProceduralFullGridBuilt now supports full and partial procedural builds.
+   - Full rebuild still builds all chunks for 256^3 Full, load, test switch and restore.
+   - Partial rebuild builds only dirty procedural chunks.
+   - Deleted-cell snapshot remains pooled and worker-owned.
+   - Dirty chunk snapshot is returned to ArrayPool after the worker finishes.
+
+3. BuildProceduralFullGrid
+   - Accepts fullRebuild + dirty chunk keys.
+   - Full rebuild creates requests for all chunks.
+   - Partial rebuild creates requests only for dirty chunk keys.
+   - Build requests are still sorted by build focus priority.
+   - Result.FullRebuild is now correct for partial procedural builds so ApplyPendingBuild replaces/removes only rebuilt chunks.
+
+4. VoxelEditorControl
+   - MarkPackedFullGridCellsDeleted now marks affected cells/chunks dirty instead of full procedural rebuild.
+   - ClearPackedFullGridDeletedCell now marks affected cell/chunk dirty instead of full procedural rebuild.
+   - Packed full-grid collection changes now mark affected old/new cells dirty instead of full procedural rebuild.
+   - InvalidateSceneGeometryForCell / InvalidateSceneGeometryForPieces use partial procedural dirty in packed mode.
+   - RestorePackedFullGridDeletedCellKeys still performs full rebuild, which is correct for load/restore.
+
+5. MainWindow
+   - Removed duplicate MarkPackedFullGridCellsDeleted call from DeleteSelected_Click.
+   - DeleteBlocksCommand remains the owner of the actual delete operation.
+
+Expected result
+- Deleting one voxel in 256^3 Full should no longer trigger a full 512-chunk rebuild.
+- Viewport Info after delete should show Partial build with a small dirty/rebuilt count, normally 1 plus boundary neighbours.
+- Undo/redo of packed delete should be more responsive.
+- Normal editor scenes are unchanged.
+
+Static checks performed
+- Braces balanced in all .cs files.
+- No LINQ query calls found:
+  .Select(
+  .Where(
+  .Average(
+  .FirstOrDefault(
+  .LastOrDefault(
+  .ToList(
+  .OrderBy(
+  .Any(
+  .All(
+  Enumerable.
+  using System.Linq
+
+Limitations
+- dotnet build could not be run in this environment because the .NET SDK is not installed.

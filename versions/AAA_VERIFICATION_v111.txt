@@ -1,0 +1,39 @@
+IsoBlockCharacterEditor v111 - AAA scene switching + packed save fix
+
+Base:
+- v110_AAA_VoxelWorld_chunkkey_build_fix.
+
+Fixes in v111:
+1. Added ChunkedVoxelRenderer.ResetForNewScene(markDirty).
+   - Drops pending async build results.
+   - Advances renderer generation so old background builds cannot upload into the next scene.
+   - Disposes live GPU chunks and clears renderer stats at scene boundaries.
+
+2. Hardened ApplyPendingBuild.
+   - A build result is uploaded only if its generation matches the current requested generation.
+   - Older pending results are discarded and their transient lists are cleared.
+
+3. UseNormalPieceScene and UsePackedFullGridStressScene now act as real scene boundaries.
+   - Switching 256^3 -> 250K/sample/new cannot keep old 256^3 geometry or pending builds.
+   - Switching normal -> 256^3 cannot keep old normal chunks.
+
+4. GenerateStressScene now rebuilds VoxelWorld before geometry invalidation is released.
+   - First draw after 10k/50k/100k/250k switch cannot see stale world data.
+
+5. Save/load supports packed 256^3 scenes.
+   - SavedScene now includes IsPackedFullGrid, PackedFullGridSize and PackedDeletedCellKeys.
+   - 256^3 full scene can be saved without serializing 16.7M objects.
+
+6. Large stress-scene GC compaction is no longer a blocking UI-thread stall.
+   - Avoids apparent hangs during test switching.
+
+Static checks performed:
+- MainWindow.xaml.cs braces balanced.
+- VoxelEditorControl.cs braces balanced.
+- ChunkedVoxelRenderer.cs braces balanced.
+- VoxelWorld.cs braces balanced.
+- Models.cs braces balanced.
+- Confirmed no old 'Ray ray =' local-name conflict exists in VoxelEditorControl.cs.
+
+Limitations:
+- dotnet SDK is not available in this sandbox, so Visual Studio build still needs to be run locally.

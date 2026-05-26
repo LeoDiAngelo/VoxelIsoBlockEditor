@@ -1,0 +1,28 @@
+Voxel Iso Block Editor v140.8 - project rename and library preview orientation fix
+
+1. Diagonal slope 50% preview orientation
+   - DiagonalSlope50 now uses libraryPreviewRotationY: 180.
+   - This affects only Block Shape Library preview orientation.
+   - Editor placement, rotation, save/load and mesh generation are unchanged.
+
+2. Product/project naming
+   - Solution file renamed to VoxelIsoBlockEditor.sln.
+   - Project file renamed to VoxelIsoBlockEditor.csproj.
+   - Visual Studio project display name is VoxelIsoBlockEditor.
+   - AssemblyName is VoxelIsoBlockEditor.
+   - Internal C# namespace remains IsoBlockCharacterEditor deliberately to avoid risky XAML/resource churn.
+
+3. Window titles and visible branding
+   - Main window title is Voxel Iso Block Editor.
+   - Main side-panel heading is VOXEL ISO BLOCK EDITOR.
+   - Block Shape Library title is Voxel Iso Block Editor - Block Shape Library.
+
+4. Startup state
+   - MainWindow starts maximized.
+   - BlockLibraryWindow opens maximized.
+
+5. Text cleanup
+   - Removed all legacy external editor reference text occurrences from the project files.
+
+No pan/scroll experiment from v141-v144 is included.
+No renderer/chunk behaviour was changed in this pass.

@@ -1,0 +1,41 @@
+IsoBlockCharacterEditor v137 - WPF stress switch responsiveness fix
+
+Problem fixed:
+- Rapidly switching 10k/50k/100k/250k/256^3 Full could make the WPF window appear frozen / not responding.
+
+Root causes addressed:
+1. Stress generation added tens/hundreds of thousands of BlockPiece objects to ObservableCollection one-by-one.
+   Even when viewport invalidation was suspended, WPF still had to process many collection events.
+2. Explicit GC.Collect calls around large stress transitions and large GPU upload apply paths could create visible WPF stalls.
+3. Fast repeated stress clicks could enqueue another heavy scene switch while the UI was still processing the previous one.
+
+Changes:
+1. Added BulkObservableCollection<T>.ReplaceAll(IList<T>).
+   - Replaces large scenes with one Reset notification instead of 10k/50k/100k/250k Add events.
+
+2. GenerateStressScene now builds a List<BlockPiece> first, then swaps it into the observable collection in one bulk operation.
+
+3. Generate256FullStressScene now clears normal pieces through the same bulk scene replacement path.
+
+4. Large stress GC is now scheduled only by setting LargeObjectHeapCompactionMode.
+   - No forced GC.Collect is triggered from stress button handlers.
+   - No forced GC.Collect is triggered after applying a large render build.
+
+5. Added _stressSceneSwitchInProgress guard.
+   - Prevents overlapping rapid stress-button scene transitions.
+
+6. Temporarily detaches PiecesList.ItemsSource for large (>5000) bulk replacements.
+   - Avoids hidden WPF list work during stress scenes.
+
+Preserved:
+- VoxelWorld remains source of truth.
+- Save/load unchanged.
+- Picking/select/paint/delete/undo/redo unchanged.
+- Packed 256^3 partial delete rebuild unchanged.
+- Camera-facing filtering unchanged.
+- Tight chunk bounds unchanged.
+- No LINQ query calls added.
+
+Static checks performed:
+- No .Select/.Where/.Average/.FirstOrDefault/.ToList/.OrderBy/.Any/.All/Enumerable/System.Linq occurrences in .cs files.
+- Brace balance checked for .cs files.

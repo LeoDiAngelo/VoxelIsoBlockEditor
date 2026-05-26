@@ -1,0 +1,13 @@
+AAA verification v119
+
+Base: v118 compilefix/structural cleanup line.
+
+Changes:
+- Removed remaining LINQ FirstOrDefault usage from BlockLibraryWindow constructor.
+- Replaced block-shape selection lookup with explicit for-loop.
+- No editor behavior change intended.
+
+Static checks performed:
+- BlockLibraryWindow.cs no longer contains FirstOrDefault.
+- No new renderer/editor logic changes.
+- Braces balanced for .cs files by simple parser.

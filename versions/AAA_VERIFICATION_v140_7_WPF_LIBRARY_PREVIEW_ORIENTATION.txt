@@ -1,0 +1,35 @@
+IsoBlockCharacterEditor v140.7 - WPF Library Preview Orientation
+
+Base:
+- Built from v140.6 library preview size version.
+- Does not include the v141-v144 pan/scroll experiments.
+
+Changes:
+1. CameraController
+   - LibraryPreviewOrthoHeight is now 2.0f.
+   - This gives more orthographic margin so the Block Shape Library preview does not clip at the top edge.
+
+2. BlockDefinition
+   - Added LibraryPreviewRotationY metadata.
+   - Rotation is normalized to 0/90/180/270 and used only by Block Shape Library preview.
+   - This does not change editor placement, save/load, actual mesh generation, or user-selected block rotation.
+
+3. BlockCatalog
+   - Slope 50% has libraryPreviewRotationY: 90 so its ramp/profile faces the viewer more clearly from the side.
+   - Diagonal slope 50% has explicit libraryPreviewRotationY: 0; its raised corner faces the default library camera.
+   - Diagonal slope inward has explicit libraryPreviewRotationY: 0; its inward/low corner faces the default library camera.
+   - Full cube and Corner cut 50% keep existing library orientation.
+
+4. BlockLibraryWindow
+   - Preview BlockPiece now receives RotationY from BlockDefinition.LibraryPreviewRotationY.
+
+Not changed:
+- Main editor pan/scroll behavior
+- Rendering pipeline
+- Chunk renderer
+- Build scheduler
+- Save/load
+- Selection
+- Paint/delete
+- Undo/redo
+- Packed 256^3 mode

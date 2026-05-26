@@ -1,0 +1,16 @@
+# AAA Verification v123 - WpfGame read-only IsFixedTimeStep compile fix
+
+1. Removed assignment to IsFixedTimeStep in VoxelEditorControl constructor.
+   The MonoGame WPF D3D11Host exposes this property as read-only and it already
+   returns false because WPF controls Update/Draw cadence.
+
+2. Kept the real FPS counter from v122.
+   Viewport Info still displays FPS based on actual Draw calls over the rolling window.
+
+3. No changes to renderer, VoxelWorld, save/load, stress tests, picking, selection,
+   green bevel, or editor commands.
+
+4. Static checks:
+   - No "IsFixedTimeStep =" assignment remains.
+   - Braces are balanced in .cs files.
+   - No old "Ray ray =" issue returned.

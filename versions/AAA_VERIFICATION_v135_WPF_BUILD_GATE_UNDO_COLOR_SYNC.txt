@@ -1,0 +1,40 @@
+IsoBlockCharacterEditor v135 WPF build-gate / undo trim / color / sync cleanup
+
+Base: v134_wpf_fast_test_switch_build_gate_fix
+
+Fixed carefully:
+1. _buildRunning is now an Interlocked gate.
+   - Replaced volatile bool with int gate: 0 idle, 1 build owns gate.
+   - EnsureProceduralFullGridBuilt and both EnsureBuilt overloads use
+     Interlocked.CompareExchange before snapshot/build scheduling.
+   - ResetForNewScene clears the gate with Interlocked.Exchange.
+   - Worker finally releases the gate only if its build serial is still current.
+
+2. Undo trimming no longer allocates a new exact-size command array every operation
+   after the limit.
+   - Trim now happens at maxHistory + slack instead of every command after 2048.
+   - Uses ArrayPool<IEditorCommand> for the rare trim buffer.
+   - Added comments documenting Stack<T> newest-first order and re-push order.
+
+3. Color parsing is cleaner and less allocation-heavy.
+   - ColorUtil.PackColor no longer uses Substring + byte.Parse.
+   - Added manual hex parsing helpers.
+   - Added ToXnaColor(int packedColor).
+   - VoxelEditorControl uses piece.PackedColor instead of reparsing ColorHex.
+
+4. SpatialGridIndex / VoxelWorld drift guard.
+   - Added DEBUG-only VerifyCellStoresAgree after add/remove/move.
+   - No release-mode overhead.
+   - VoxelWorld remains authoritative; SpatialGridIndex remains legacy UI/pick compatibility.
+
+5. No LINQ query methods were added.
+
+Static checks performed:
+- Braces balanced in all .cs files.
+- No using System.Linq found.
+- No .Select/.Where/.Average/.FirstOrDefault/.LastOrDefault/.ToList/.OrderBy/.Any/.All/Enumerable query calls found.
+- No old new IEditorCommand[_undoStack.Count] trim allocation remains.
+- No Substring/byte.Parse color parsing remains.
+
+Limitations:
+- dotnet build could not be run in this environment because .NET SDK is not installed.

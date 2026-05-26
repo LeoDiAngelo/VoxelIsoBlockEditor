@@ -1,0 +1,17 @@
+IsoBlockCharacterEditor v106 - focused packed 256³ editor fix
+
+Base: v105/v97 line, minimal targeted changes.
+
+Verified by static checks in this environment:
+- No "Ray ray =" local declaration remains in VoxelEditorControl.cs.
+- DrawPackedDeletedCellMarkers method and calls are removed.
+- Packed 256³ delete now marks the dense procedural renderer dirty instead of drawing a black cube.
+- ChunkedVoxelRenderer procedural full-grid build accepts deleted cell keys.
+- Procedural mesh skips deleted cells on outer surfaces and emits newly exposed cavity faces around deleted cells.
+- Camera minimum distance for packed 256³ now accounts for _workspaceOffset, so panning cannot move the model through the camera.
+- Mouse wheel, right-drag rotation, and keyboard/screen panning clamp distance in packed 256³ mode.
+
+Important behavior:
+- 256³ Full remains solid: Build cannot place inside occupied cells.
+- Select/Paint/Rotate/Flip/Delete still operate on materialized sparse overlay cells.
+- Delete should create an actual surface hole/cavity, not a black marker cube.

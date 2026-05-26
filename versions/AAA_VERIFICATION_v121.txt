@@ -1,0 +1,20 @@
+IsoBlockCharacterEditor v121 - remove remaining LINQ hot/special paths
+
+Changes:
+1. IsoBlockMeshBuilder.EstimateCulledStats no longer uses Enumerable.ToList().
+   - If input is already IList<BlockPiece>, it is reused.
+   - Otherwise a List<BlockPiece> is built with an explicit foreach loop.
+
+2. IsoBlockMeshBuilder.CornerCut no longer uses Select(...).ToList().
+   - bottom/top polygon lists are built with an explicit for-loop.
+
+3. ChunkedVoxelRenderer.EnsureProceduralFullGridBuilt no longer uses Enumerable.ToArray() on IReadOnlyCollection<int>.
+   - deleted-cell snapshot is copied with an explicit foreach loop.
+
+4. VoxelEditorControl.GetPackedFullGridDeletedCellKeys no longer uses Enumerable.ToArray() on HashSet<int>.
+   - deleted-cell keys are copied with an explicit foreach loop.
+
+Notes:
+- List<T>.ToArray() and custom buffer ToArray() remain where they are intentional materialization points, not LINQ queries.
+- UI names containing Select/SelectedItem are not LINQ usage.
+- No renderer behavior, VoxelWorld behavior, save/load, or editor commands were changed.

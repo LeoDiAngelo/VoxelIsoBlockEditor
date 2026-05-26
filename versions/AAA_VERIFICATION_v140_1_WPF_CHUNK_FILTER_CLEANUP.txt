@@ -1,0 +1,24 @@
+IsoBlockCharacterEditor v140.1 - WPF chunk filter cleanup
+
+Scope:
+- Keep v140 as the stable baseline.
+- Apply only the small chunk-neighbour filter cleanup requested after v140.
+- Do not change viewport pan/scroll, rendering behaviour, save/load, selection, paint, delete, undo/redo, packed partial rebuild, camera filtering or stress modes.
+
+Changes:
+1. VoxelWorld.CreateRenderSnapshot now computes chunksPerAxis once per snapshot using CoordinateHelper.ChunksPerAxis(gridSize).
+2. VoxelWorld.CreatePooledRenderSnapshot now computes chunksPerAxis once per snapshot using CoordinateHelper.ChunksPerAxis(gridSize).
+3. VoxelWorld.AddIfInside now receives chunksPerAxis directly instead of recomputing it for each neighbour candidate.
+4. VoxelWorld.AddIfInside now uses the unsigned bounds-check pattern for negative and upper-bound rejection in one branch group.
+5. AddIfInside now uses CoordinateHelper.ChunkKeyUnsafe after bounds validation, matching the intended safe/unsafe split.
+6. BuildProceduralFullGrid now uses CoordinateHelper.ChunksPerAxis(gridSize) instead of duplicating chunk-count math locally.
+
+Verification:
+- Searched for the old VoxelWorld AddIfInside(gridSize) pattern: removed.
+- Searched for AddIfInside calls still passing gridSize: none.
+- Searched for direct (gridSize + ChunkSize - 1) >> ChunkShift usage in active C# files: none.
+- No LINQ was added.
+- Zip archive validates successfully.
+
+Build note:
+- dotnet SDK was not available in the patch container, so compile verification must be performed locally in Visual Studio/dotnet.

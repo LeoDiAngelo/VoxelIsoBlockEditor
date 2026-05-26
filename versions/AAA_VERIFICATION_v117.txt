@@ -1,0 +1,45 @@
+IsoBlockCharacterEditor v117 - AAA structural cleanup verification
+
+Baseline: v116 compilefix line.
+
+Implemented:
+1. Central CoordinateHelper
+   - Added CoordinateHelper.cs.
+   - Centralized CellKey, ChunkKey, DecodeChunkKey, LocalIndex, LayerStart and ChunksPerAxis.
+   - Removed local CellKey/ChunkKey/LocalIndex duplicate formulas from the modified hot-path files.
+   - VoxelWorld and ChunkedVoxelRenderer now use the same central key layout.
+
+2. Async scene/build safety
+   - Added RendererBuildTicket.cs.
+   - Renderer build results are now scene-bound and generation-bound.
+   - ResetForNewScene cancels in-flight builds, clears pending results, increments scene id and invalidates build serials.
+   - Background builds use CancellationToken and discard cancelled/stale results.
+   - _buildRunning is protected with a build serial so an old cancelled task cannot mark a newer build as idle.
+
+3. VoxelWorld source-of-truth cleanup
+   - Normal editor occupancy/render snapshots continue to come from VoxelWorld.
+   - SpatialGridIndex remains as legacy UI compatibility only; editor occupancy checks already use VoxelWorld.
+   - Coordinate keys now come from CoordinateHelper to prevent renderer/world divergence.
+
+4. File separation
+   - New CoordinateHelper.cs for coordinate/key/index logic.
+   - New RendererBuildTicket.cs for async build identity.
+   - This avoids another risky large-file rewrite while moving the highest-risk duplicated logic out of the large files.
+
+5. Span/ArrayPool cleanup
+   - PooledVertexBuffer copy paths now use Span<T>.CopyTo instead of Array.Copy.
+   - Existing ArrayPool strategy is preserved, including the large-array retention guard to avoid LOH/pool memory retention.
+
+6. System.Numerics
+   - Not blindly applied. It should only be added after profiling shows a specific loop is vectorizable and hot.
+   - This version keeps behavior stable rather than adding speculative SIMD that can increase complexity without measured gain.
+
+Static checks performed:
+- Braces balanced for all .cs files.
+- No old 'Ray ray =' declaration exists in .cs files.
+- No CoordinateHelper.CoordinateHelper accidental names.
+- No DecodeCoordinate/UpdateCoordinate/PackCoordinate accidental identifiers.
+- No local static CellKey/ChunkKey/LocalIndex formulas remain outside CoordinateHelper in the scanned .cs files.
+
+Limitations:
+- dotnet SDK is not installed in this environment, so Visual Studio/.NET build could not be executed here.

@@ -1,0 +1,23 @@
+IsoBlockCharacterEditor v109 - AAA VoxelWorld core refactor
+
+Base: v108 good visual/edge line.
+
+Implemented in this package:
+- Added VoxelWorld as authoritative normal-scene editor model.
+- Added VoxelChunk with packed uint[] horizontal Y-layer layout:
+  index = localY * 32 * 32 + localZ * 32 + localX.
+- Added occupancy bitset per chunk.
+- Normal editor Build/Select/Paint/Delete/Move/Rotate/Flip/Copy/Paste/Undo/Redo now updates/queries VoxelWorld for occupancy and render source.
+- ObservableCollection<BlockPiece> remains only as UI/save/selection compatibility view.
+- ChunkedVoxelRenderer now has EnsureBuilt(GraphicsDevice, VoxelWorld, gridSize) and snapshots compact BlockData from VoxelWorld instead of cloning BlockPiece objects for the render path.
+- CPU greedy mesh renderer is connected to VoxelWorld for normal scenes.
+- Existing packed 256³ full stress path is preserved and not rewritten into 16.7M BlockPiece objects.
+
+Static checks performed in this environment:
+- Braces balance to zero in modified C# files.
+- No local declaration "Ray ray =" exists in VoxelEditorControl.cs.
+- New VoxelWorld.cs is included by SDK-style project automatically.
+
+Limitations:
+- dotnet SDK is not installed in the sandbox, so a real Visual Studio build must still be run locally.
+- GPU compute and GPU ray marching are intentionally not included in v109; this package implements the CPU greedy VoxelWorld core requested first.
