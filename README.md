@@ -203,9 +203,6 @@ rendering performance inside a standard desktop application window.
 Good future improvements before a larger public release:
 
 - Add unit tests for `CoordinateHelper`, chunk neighbour expansion and mesh generation.
-- Add a small screenshots section to this README.
-- Add a `LICENSE` file before accepting external use or contributions.
-- Add GitHub Actions build verification for `net8.0-windows`.
 - Consider moving renderer components into a dedicated namespace/folder structure.
 
 ---
