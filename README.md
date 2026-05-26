@@ -180,6 +180,14 @@ The `versions/` folder contains historical verification and change notes. These 
 
 ---
 
+## Why WPF + MonoGame
+
+WPF handles the editor UI. MonoGame drives the hardware-accelerated 3D viewport.
+The combination is uncommon but produces a native Windows tool with full DirectX
+rendering performance inside a standard desktop application window.
+
+---
+
 ## Current limitations
 
 - This is a WPF/Windows desktop project and targets `net8.0-windows`.
@@ -204,4 +212,4 @@ Good future improvements before a larger public release:
 
 ## License
 
-No license file is included yet. Add a `LICENSE` file before publishing if others should be allowed to use, modify or redistribute the code.
+MIT License — see [LICENSE](LICENSE) for details.
