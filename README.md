@@ -29,6 +29,7 @@ The project focuses on an isometric block-building workflow with hardware-accele
 - Dedicated Block Shape Library preview window.
 
 <img width="3840" height="2064" alt="image" src="https://github.com/user-attachments/assets/aacfa55a-2157-435b-8c51-8992592426f2" />
+<img width="3840" height="2064" alt="image" src="https://github.com/user-attachments/assets/cc6fe36e-6a6a-4854-8bfa-af8041a0f3ab" />
 
 ---
 
