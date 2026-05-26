@@ -6,6 +6,8 @@ The project focuses on an isometric block-building workflow with hardware-accele
 
 **Author:** Lennart Svensson
 
+<img width="3820" height="1975" alt="image" src="https://github.com/user-attachments/assets/bfaf92c2-7f5e-4c9f-a89a-dfbe40b032ef" />
+
 ---
 
 ## Highlights
