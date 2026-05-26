@@ -33,7 +33,7 @@ The project focuses on an isometric block-building workflow with hardware-accele
 <img width="3839" height="2062" alt="image" src="https://github.com/user-attachments/assets/7a2cbb38-8217-464c-a995-1d49398dc351" />
 <img width="3840" height="2064" alt="image" src="https://github.com/user-attachments/assets/bc67e8a5-6fa4-4cfa-bef9-351ca3ca84c9" />
 <img width="3839" height="2159" alt="image" src="https://github.com/user-attachments/assets/105a726b-d427-4580-80cf-fc5d44f9fb6b" />
-
+<img width="3840" height="2064" alt="image" src="https://github.com/user-attachments/assets/91351ef0-722c-4fb1-b0aa-11e782072a0d" />
 
 ---
 
