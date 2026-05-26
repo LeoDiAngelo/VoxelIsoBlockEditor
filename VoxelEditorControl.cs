@@ -51,6 +51,7 @@ public sealed partial class VoxelEditorControl : WpfGame, IVoxelEditorInputTarge
     private readonly PackedFullGridRenderer _packedRenderer = new();
     private readonly CameraController _camera = new();
     private InputHandler? _inputHandler;
+    private bool _resourcesDisposed;
 
     private Vector3 _workspaceOffset { get => _camera.WorkspaceOffset; set => _camera.WorkspaceOffset = value; }
     private bool _isPreviewMode { get => _camera.IsPreviewMode; set => _camera.IsPreviewMode = value; }
@@ -145,7 +146,7 @@ public sealed partial class VoxelEditorControl : WpfGame, IVoxelEditorInputTarge
         IsHitTestVisible = true;
         Loaded += (_, _) => Focus();
         LostKeyboardFocus += (_, _) => ClearWorkspaceArrowKeyState();
-        Unloaded += (_, _) => ClearWorkspaceArrowKeyState();
+        Unloaded += OnUnloaded;
 
         GraphicsDevice.RasterizerState = _solidRasterizer;
         GraphicsDevice.DepthStencilState = DepthStencilState.Default;
@@ -157,6 +158,42 @@ public sealed partial class VoxelEditorControl : WpfGame, IVoxelEditorInputTarge
             CenterOnGrid();
 
         base.Initialize();
+    }
+
+    private void OnUnloaded(object sender, System.Windows.RoutedEventArgs e)
+    {
+        ClearWorkspaceArrowKeyState();
+        DisposeEditorResources();
+    }
+
+    private void DisposeEditorResources()
+    {
+        if (_resourcesDisposed)
+            return;
+
+        _resourcesDisposed = true;
+        _inputHandler?.Detach();
+        _inputHandler = null;
+
+        if (_pieces is not null && _piecesChangedHandler is not null)
+        {
+            _pieces.CollectionChanged -= _piecesChangedHandler;
+            _piecesChangedHandler = null;
+        }
+
+        _chunkRenderer.Dispose();
+        _packedRenderer.Dispose();
+
+        _effect?.Dispose();
+        _effect = null;
+        _spriteBatch?.Dispose();
+        _spriteBatch = null;
+        _pixel?.Dispose();
+        _pixel = null;
+
+        _solidRasterizer.Dispose();
+        _wireRasterizer.Dispose();
+        _edgeRasterizer.Dispose();
     }
 
     private void ConfigureHighQualityBackBuffer()
@@ -508,6 +545,7 @@ public sealed partial class VoxelEditorControl : WpfGame, IVoxelEditorInputTarge
 
         float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
         UpdateWorkspacePan(elapsed);
+        PrepareRendererBuildForFrame();
 
         base.Update(gameTime);
     }
@@ -515,6 +553,27 @@ public sealed partial class VoxelEditorControl : WpfGame, IVoxelEditorInputTarge
     private void UpdateWorkspacePan(float elapsed)
     {
         _camera.UpdateWorkspacePan(elapsed, _gridSize, _packedFullGridStressMode, _packedFullGridSize);
+    }
+
+    private void PrepareRendererBuildForFrame()
+    {
+        if (_effect is null || GraphicsDevice is null)
+            return;
+
+        Vector3 buildFocus = BuildPriorityFocus();
+        if (_packedFullGridStressMode)
+        {
+            _packedRenderer.EnsureBaseGridBuilt(GraphicsDevice, _chunkRenderer, buildFocus, _pieces);
+            return;
+        }
+
+        if (_pieces is null || _pieces.Count == 0 || _isPreviewMode)
+            return;
+
+        if (_voxelWorld is not null)
+            _chunkRenderer.EnsureBuilt(GraphicsDevice, _voxelWorld, _gridSize, buildFocus);
+        else
+            _chunkRenderer.EnsureBuilt(GraphicsDevice, _pieces, _gridSize, buildFocus);
     }
 
     protected override void Draw(GameTime gameTime)

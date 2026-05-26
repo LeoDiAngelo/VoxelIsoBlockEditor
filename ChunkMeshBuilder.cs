@@ -142,18 +142,11 @@ internal static class ChunkMeshBuilder
     internal static BuildResult BuildProceduralFullGrid(int gridSize, int generation, long sceneId, bool fullRebuild, int[] dirtyKeys, int dirtyCount, int[] deletedKeys, int deletedCount, Vector3 buildFocus, CancellationToken cancellationToken)
     {
         int chunksPerAxis = CoordinateHelper.ChunksPerAxis(gridSize);
-        int blockCount = gridSize * gridSize * gridSize - deletedCount;
-        HashSet<int>? deleted = null;
-        if (deletedCount > 0)
-        {
-            deleted = new HashSet<int>(deletedCount);
-            for (int i = 0; i < deletedCount; i++)
-            {
-                if ((i & 4095) == 0)
-                    cancellationToken.ThrowIfCancellationRequested();
-                deleted.Add(deletedKeys[i]);
-            }
-        }
+        DeletedCellChunkIndex? deletedIndex = deletedCount > 0
+            ? new DeletedCellChunkIndex(deletedKeys, deletedCount, gridSize, cancellationToken)
+            : null;
+        int effectiveDeletedCount = deletedIndex?.Count ?? 0;
+        int blockCount = gridSize * gridSize * gridSize - effectiveDeletedCount;
 
         int maxChunks = chunksPerAxis * chunksPerAxis * chunksPerAxis;
         int requestCapacity = fullRebuild ? maxChunks : Math.Max(1, dirtyCount);
@@ -188,7 +181,7 @@ internal static class ChunkMeshBuilder
         SortBuildRequests(requests);
 
         int meshCapacity = fullRebuild
-            ? Math.Max(1, maxChunks - Math.Max(0, chunksPerAxis - 2) * Math.Max(0, chunksPerAxis - 2) * Math.Max(0, chunksPerAxis - 2) + deletedCount)
+            ? Math.Max(1, maxChunks - Math.Max(0, chunksPerAxis - 2) * Math.Max(0, chunksPerAxis - 2) * Math.Max(0, chunksPerAxis - 2) + effectiveDeletedCount)
             : Math.Max(1, requests.Count);
         var meshes = new List<ChunkMeshData>(meshCapacity);
         var rebuilt = new List<int>(requests.Count);
@@ -198,7 +191,7 @@ internal static class ChunkMeshBuilder
             cancellationToken.ThrowIfCancellationRequested();
             ChunkBuildRequest request = requests[i];
             rebuilt.Add(request.Key);
-            ChunkMeshData mesh = BuildProceduralFullGridSurfaceChunk(request.Coord.X, request.Coord.Y, request.Coord.Z, gridSize, chunksPerAxis, deleted, deletedKeys, deletedCount, cancellationToken);
+            ChunkMeshData mesh = BuildProceduralFullGridSurfaceChunk(request.Coord.X, request.Coord.Y, request.Coord.Z, gridSize, chunksPerAxis, deletedIndex, cancellationToken);
             if (mesh.Vertices.Length > 0)
                 meshes.Add(mesh);
         }
@@ -206,7 +199,7 @@ internal static class ChunkMeshBuilder
         return new BuildResult(generation, sceneId, blockCount, meshes, rebuilt, fullRebuild);
     }
 
-    private static ChunkMeshData BuildProceduralFullGridSurfaceChunk(int cx, int cy, int cz, int gridSize, int chunksPerAxis, HashSet<int>? deleted, int[] deletedKeys, int deletedCount, CancellationToken cancellationToken)
+    private static ChunkMeshData BuildProceduralFullGridSurfaceChunk(int cx, int cy, int cz, int gridSize, int chunksPerAxis, DeletedCellChunkIndex? deletedIndex, CancellationToken cancellationToken)
     {
         using var vertices = new PooledVertexBuffer(32 * 1024);
         int quads = 0;
@@ -231,7 +224,7 @@ internal static class ChunkMeshBuilder
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     for (int lx = 0; lx < sx; lx++)
-                        if (!IsDeleted(deleted, chunkX0 + lx, chunkY0 + ly, wz))
+                        if (!IsDeleted(deletedIndex, chunkX0 + lx, chunkY0 + ly, wz))
                             mask[lx + ly * ChunkSize] = ProceduralColor(chunkX0 + lx, chunkY0 + ly, wz);
                 }
                 quads += EmitMask(mask, vertices, (x, y, w, h, packed) =>
@@ -253,7 +246,7 @@ internal static class ChunkMeshBuilder
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     for (int lx = 0; lx < sx; lx++)
-                        if (!IsDeleted(deleted, chunkX0 + lx, chunkY0 + ly, wz))
+                        if (!IsDeleted(deletedIndex, chunkX0 + lx, chunkY0 + ly, wz))
                             mask[lx + ly * ChunkSize] = ProceduralColor(chunkX0 + lx, chunkY0 + ly, wz);
                 }
                 quads += EmitMask(mask, vertices, (x, y, w, h, packed) =>
@@ -275,7 +268,7 @@ internal static class ChunkMeshBuilder
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     for (int lz = 0; lz < sz; lz++)
-                        if (!IsDeleted(deleted, wx, chunkY0 + ly, chunkZ0 + lz))
+                        if (!IsDeleted(deletedIndex, wx, chunkY0 + ly, chunkZ0 + lz))
                             mask[lz + ly * ChunkSize] = ProceduralColor(wx, chunkY0 + ly, chunkZ0 + lz);
                 }
                 quads += EmitMask(mask, vertices, (zLocal, y, w, h, packed) =>
@@ -297,7 +290,7 @@ internal static class ChunkMeshBuilder
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     for (int lz = 0; lz < sz; lz++)
-                        if (!IsDeleted(deleted, wx, chunkY0 + ly, chunkZ0 + lz))
+                        if (!IsDeleted(deletedIndex, wx, chunkY0 + ly, chunkZ0 + lz))
                             mask[lz + ly * ChunkSize] = ProceduralColor(wx, chunkY0 + ly, chunkZ0 + lz);
                 }
                 quads += EmitMask(mask, vertices, (zLocal, y, w, h, packed) =>
@@ -319,7 +312,7 @@ internal static class ChunkMeshBuilder
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     for (int lx = 0; lx < sx; lx++)
-                        if (!IsDeleted(deleted, chunkX0 + lx, wy, chunkZ0 + lz))
+                        if (!IsDeleted(deletedIndex, chunkX0 + lx, wy, chunkZ0 + lz))
                             mask[lx + lz * ChunkSize] = ProceduralColor(chunkX0 + lx, wy, chunkZ0 + lz);
                 }
                 quads += EmitMask(mask, vertices, (x, zLocal, w, h, packed) =>
@@ -341,7 +334,7 @@ internal static class ChunkMeshBuilder
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     for (int lx = 0; lx < sx; lx++)
-                        if (!IsDeleted(deleted, chunkX0 + lx, wy, chunkZ0 + lz))
+                        if (!IsDeleted(deletedIndex, chunkX0 + lx, wy, chunkZ0 + lz))
                             mask[lx + lz * ChunkSize] = ProceduralColor(chunkX0 + lx, wy, chunkZ0 + lz);
                 }
                 quads += EmitMask(mask, vertices, (x, zLocal, w, h, packed) =>
@@ -354,9 +347,9 @@ internal static class ChunkMeshBuilder
                 });
             }
 
-            if (deleted is not null && deletedCount > 0)
+            if (deletedIndex is not null)
             {
-                int cavityQuads = AddDeletedCellCavityFaces(vertices, cx, cy, cz, gridSize, deleted, deletedKeys, deletedCount, cancellationToken);
+                int cavityQuads = AddDeletedCellCavityFaces(vertices, cx, cy, cz, gridSize, deletedIndex, cancellationToken);
                 if (cavityQuads > 0)
                     surfaceMask = SurfaceAll; // cavity faces may be visible through a hole from many angles
                 quads += cavityQuads;
@@ -372,13 +365,13 @@ internal static class ChunkMeshBuilder
         return new ChunkMeshData(CoordinateHelper.ChunkKey(cx, cy, cz), cx, cy, cz, bounds, vertexArray, quads, surfaceMask);
     }
 
-    private static bool IsDeleted(HashSet<int>? deleted, int x, int y, int z)
-        => deleted is not null && deleted.Contains(CoordinateHelper.CellKey(x, y, z));
+    private static bool IsDeleted(DeletedCellChunkIndex? deletedIndex, int x, int y, int z)
+        => deletedIndex is not null && deletedIndex.ContainsCell(CoordinateHelper.CellKey(x, y, z));
 
-    private static bool IsSolidProceduralCell(int gridSize, HashSet<int> deleted, int x, int y, int z)
-        => (uint)x < (uint)gridSize && (uint)y < (uint)gridSize && (uint)z < (uint)gridSize && !deleted.Contains(CoordinateHelper.CellKey(x, y, z));
+    private static bool IsSolidProceduralCell(int gridSize, DeletedCellChunkIndex deletedIndex, int x, int y, int z)
+        => (uint)x < (uint)gridSize && (uint)y < (uint)gridSize && (uint)z < (uint)gridSize && !deletedIndex.ContainsCell(CoordinateHelper.CellKey(x, y, z));
 
-    private static int AddDeletedCellCavityFaces(PooledVertexBuffer vertices, int cx, int cy, int cz, int gridSize, HashSet<int> deleted, int[] deletedKeys, int deletedCount, CancellationToken cancellationToken)
+    private static int AddDeletedCellCavityFaces(PooledVertexBuffer vertices, int cx, int cy, int cz, int gridSize, DeletedCellChunkIndex deletedIndex, CancellationToken cancellationToken)
     {
         int quads = 0;
         int x0 = cx * ChunkSize, y0 = cy * ChunkSize, z0 = cz * ChunkSize;
@@ -386,33 +379,40 @@ internal static class ChunkMeshBuilder
         int y1 = Math.Min(y0 + ChunkSize, gridSize);
         int z1 = Math.Min(z0 + ChunkSize, gridSize);
 
-        for (int i = 0; i < deletedCount; i++)
+        List<int>? relevantDeletedCells = deletedIndex.GetPotentialCavityCellsForChunk(cx, cy, cz);
+        if (relevantDeletedCells is null || relevantDeletedCells.Count == 0)
+            return 0;
+
+        for (int i = 0; i < relevantDeletedCells.Count; i++)
         {
             if ((i & 4095) == 0)
                 cancellationToken.ThrowIfCancellationRequested();
 
-            int key = deletedKeys[i];
+            int key = relevantDeletedCells[i];
             int dx = (key >> 16) & 0xFF;
             int dy = (key >> 8) & 0xFF;
             int dz = key & 0xFF;
 
-            // For each deleted cell, emit the newly exposed face of each solid neighbour.
-            quads += AddNeighbourFaceIfInChunk(vertices, gridSize, deleted, dx - 1, dy, dz, x0, y0, z0, x1, y1, z1, face: 0);
-            quads += AddNeighbourFaceIfInChunk(vertices, gridSize, deleted, dx + 1, dy, dz, x0, y0, z0, x1, y1, z1, face: 1);
-            quads += AddNeighbourFaceIfInChunk(vertices, gridSize, deleted, dx, dy - 1, dz, x0, y0, z0, x1, y1, z1, face: 2);
-            quads += AddNeighbourFaceIfInChunk(vertices, gridSize, deleted, dx, dy + 1, dz, x0, y0, z0, x1, y1, z1, face: 3);
-            quads += AddNeighbourFaceIfInChunk(vertices, gridSize, deleted, dx, dy, dz - 1, x0, y0, z0, x1, y1, z1, face: 4);
-            quads += AddNeighbourFaceIfInChunk(vertices, gridSize, deleted, dx, dy, dz + 1, x0, y0, z0, x1, y1, z1, face: 5);
+            // For each deleted cell that can expose a face into this chunk, emit
+            // the newly exposed face of each solid neighbour that is inside this
+            // chunk. The chunk-local index avoids scanning every deleted cell for
+            // every rebuilt chunk.
+            quads += AddNeighbourFaceIfInChunk(vertices, gridSize, deletedIndex, dx - 1, dy, dz, x0, y0, z0, x1, y1, z1, face: 0);
+            quads += AddNeighbourFaceIfInChunk(vertices, gridSize, deletedIndex, dx + 1, dy, dz, x0, y0, z0, x1, y1, z1, face: 1);
+            quads += AddNeighbourFaceIfInChunk(vertices, gridSize, deletedIndex, dx, dy - 1, dz, x0, y0, z0, x1, y1, z1, face: 2);
+            quads += AddNeighbourFaceIfInChunk(vertices, gridSize, deletedIndex, dx, dy + 1, dz, x0, y0, z0, x1, y1, z1, face: 3);
+            quads += AddNeighbourFaceIfInChunk(vertices, gridSize, deletedIndex, dx, dy, dz - 1, x0, y0, z0, x1, y1, z1, face: 4);
+            quads += AddNeighbourFaceIfInChunk(vertices, gridSize, deletedIndex, dx, dy, dz + 1, x0, y0, z0, x1, y1, z1, face: 5);
         }
 
         return quads;
     }
 
-    private static int AddNeighbourFaceIfInChunk(PooledVertexBuffer vertices, int gridSize, HashSet<int> deleted, int x, int y, int z, int chunkX0, int chunkY0, int chunkZ0, int chunkX1, int chunkY1, int chunkZ1, int face)
+    private static int AddNeighbourFaceIfInChunk(PooledVertexBuffer vertices, int gridSize, DeletedCellChunkIndex deletedIndex, int x, int y, int z, int chunkX0, int chunkY0, int chunkZ0, int chunkX1, int chunkY1, int chunkZ1, int face)
     {
         if (x < chunkX0 || x >= chunkX1 || y < chunkY0 || y >= chunkY1 || z < chunkZ0 || z >= chunkZ1)
             return 0;
-        if (!IsSolidProceduralCell(gridSize, deleted, x, y, z))
+        if (!IsSolidProceduralCell(gridSize, deletedIndex, x, y, z))
             return 0;
 
         XnaColor c = UnpackColor(ProceduralColor(x, y, z));
@@ -785,10 +785,10 @@ internal static class ChunkMeshBuilder
     }
 
     private static bool IsGreedyCube(BlockData p)
-        => p.Shape == BlockShape.FullCube && p.RotationY == 0 && !p.FlipHorizontal && !p.FlipVertical;
+        => p.Shape == BlockShape.FullCube;
 
     private static bool IsGreedyCube(ulong packedBlock)
-        => packedBlock != 0 && ShapeFlags(packedBlock) == 0;
+        => packedBlock != 0 && (ShapeFlags(packedBlock) & 0xFF) == (int)BlockShape.FullCube;
 
     private static bool HasGreedyCube(Dictionary<int, ulong> occupancy, int gridSize, int x, int y, int z)
     {
@@ -922,6 +922,80 @@ internal static class ChunkMeshBuilder
             if (Blocks[index] == 0)
                 NonEmptyCount++;
             Blocks[index] = packedBlock;
+        }
+    }
+
+    private sealed class DeletedCellChunkIndex
+    {
+        private readonly HashSet<int> _deletedCells;
+        private readonly Dictionary<int, List<int>> _potentialCavityCellsByChunkKey;
+
+        public DeletedCellChunkIndex(int[] deletedKeys, int deletedCount, int gridSize, CancellationToken cancellationToken)
+        {
+            _deletedCells = new HashSet<int>(deletedCount);
+            int chunksPerAxis = CoordinateHelper.ChunksPerAxis(gridSize);
+            int maxChunkCount = chunksPerAxis * chunksPerAxis * chunksPerAxis;
+            _potentialCavityCellsByChunkKey = new Dictionary<int, List<int>>(Math.Max(4, Math.Min(deletedCount, maxChunkCount)));
+
+            for (int i = 0; i < deletedCount; i++)
+            {
+                if ((i & 4095) == 0)
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                int key = deletedKeys[i];
+                int x = (key >> 16) & 0xFF;
+                int y = (key >> 8) & 0xFF;
+                int z = key & 0xFF;
+
+                if ((uint)x >= (uint)gridSize || (uint)y >= (uint)gridSize || (uint)z >= (uint)gridSize)
+                    continue;
+
+                if (!_deletedCells.Add(key))
+                    continue;
+
+                AddForNeighbourChunk(key, x - 1, y, z, gridSize);
+                AddForNeighbourChunk(key, x + 1, y, z, gridSize);
+                AddForNeighbourChunk(key, x, y - 1, z, gridSize);
+                AddForNeighbourChunk(key, x, y + 1, z, gridSize);
+                AddForNeighbourChunk(key, x, y, z - 1, gridSize);
+                AddForNeighbourChunk(key, x, y, z + 1, gridSize);
+            }
+        }
+
+        public int Count => _deletedCells.Count;
+
+        public bool ContainsCell(int cellKey) => _deletedCells.Contains(cellKey);
+
+        public List<int>? GetPotentialCavityCellsForChunk(int cx, int cy, int cz)
+        {
+            int chunkKey = CoordinateHelper.ChunkKeyUnsafe(cx, cy, cz);
+            return _potentialCavityCellsByChunkKey.TryGetValue(chunkKey, out List<int>? cells) ? cells : null;
+        }
+
+        private void AddForNeighbourChunk(int deletedCellKey, int x, int y, int z, int gridSize)
+        {
+            if ((uint)x >= (uint)gridSize || (uint)y >= (uint)gridSize || (uint)z >= (uint)gridSize)
+                return;
+
+            int chunkKey = CoordinateHelper.ChunkKeyUnsafe(x >> ChunkShift, y >> ChunkShift, z >> ChunkShift);
+            if (!_potentialCavityCellsByChunkKey.TryGetValue(chunkKey, out List<int>? cells))
+            {
+                cells = new List<int>(4);
+                _potentialCavityCellsByChunkKey.Add(chunkKey, cells);
+            }
+
+            // One deleted cell can have several solid neighbours inside the same
+            // chunk. Add it once per chunk; AddNeighbourFaceIfInChunk still emits
+            // all relevant faces for that cell. Only the last few entries can be
+            // duplicates because a cell has exactly six neighbours.
+            int start = Math.Max(0, cells.Count - 6);
+            for (int i = cells.Count - 1; i >= start; i--)
+            {
+                if (cells[i] == deletedCellKey)
+                    return;
+            }
+
+            cells.Add(deletedCellKey);
         }
     }
 

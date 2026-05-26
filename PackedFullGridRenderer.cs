@@ -212,6 +212,15 @@ internal sealed class PackedFullGridRenderer : IDisposable
         return _occludedCells;
     }
 
+    public void EnsureBaseGridBuilt(
+        GraphicsDevice graphicsDevice,
+        ChunkedVoxelRenderer chunkRenderer,
+        Vector3 buildPriorityFocus,
+        IList<BlockPiece>? pieces)
+    {
+        chunkRenderer.EnsureProceduralFullGridBuilt(graphicsDevice, GridSize, GetOccludedCells(pieces), buildPriorityFocus);
+    }
+
     public void Draw(
         GraphicsDevice graphicsDevice,
         BasicEffect effect,
@@ -225,7 +234,7 @@ internal sealed class PackedFullGridRenderer : IDisposable
         IEnumerable<BlockPiece>? selection,
         RasterizerState edgeRasterizer)
     {
-        chunkRenderer.EnsureProceduralFullGridBuilt(graphicsDevice, GridSize, GetOccludedCells(pieces), buildPriorityFocus);
+        EnsureBaseGridBuilt(graphicsDevice, chunkRenderer, buildPriorityFocus, pieces);
         chunkRenderer.DrawProceduralFullGridCameraFiltered(graphicsDevice, effect, frustum, blockWorld, directionFromGridToCamera, true, out _, out _);
 
         if (pieces is not null && pieces.Count > 0)

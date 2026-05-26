@@ -38,6 +38,15 @@ internal sealed class InputHandler
         _element.AddHandler(UIElement.PreviewMouseWheelEvent, new MouseWheelEventHandler(OnMouseWheel), true);
     }
 
+    public void Detach()
+    {
+        ClearCaptureState();
+        _element.RemoveHandler(UIElement.PreviewMouseDownEvent, new MouseButtonEventHandler(OnMouseDown));
+        _element.RemoveHandler(UIElement.PreviewMouseMoveEvent, new MouseEventHandler(OnMouseMove));
+        _element.RemoveHandler(UIElement.PreviewMouseUpEvent, new MouseButtonEventHandler(OnMouseUp));
+        _element.RemoveHandler(UIElement.PreviewMouseWheelEvent, new MouseWheelEventHandler(OnMouseWheel));
+    }
+
     public void ClearCaptureState()
     {
         _rightDown = false;
