@@ -1,0 +1,32 @@
+Voxel Iso Block Editor v140.11 verification
+===========================================
+
+Purpose
+-------
+Fix a real multi-selection movement risk before presenting the code as production-level:
+selected blocks are now moved transactionally across the occupancy stores.
+
+Problem fixed
+-------------
+The old MoveBlocksCommand moved selected blocks piece-by-piece. Validation allowed a selected
+block to move into another selected block's old cell, which is correct. However, executing the
+move one piece at a time could temporarily see that old destination as occupied and make
+VoxelWorld / SpatialGridIndex updates order-dependent.
+
+Fix
+---
+MainWindow.MovePiecesInternal(Guid[] ids, int dx, int dy, int dz) now performs the move in phases:
+
+1. Resolve all moving pieces.
+2. Capture all old coordinates.
+3. Remove all selected old cells from VoxelWorld and SpatialGridIndex.
+4. Update every selected BlockPiece position.
+5. Reinsert every selected BlockPiece into VoxelWorld and SpatialGridIndex.
+6. Verify old and new cells in DEBUG.
+
+Important
+---------
+This keeps the existing validation, undo/redo command model, selection model, renderer invalidation,
+pan/scroll behavior, save/load, packed-grid mode and mesh generation unchanged.
+
+No LINQ, tuple-offset loops or behavior shortcuts were introduced.

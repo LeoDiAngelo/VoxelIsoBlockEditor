@@ -130,24 +130,6 @@ public sealed class VoxelWorld
             _chunks.Remove(chunkKey);
     }
 
-    public void MovePiece(BlockPiece piece, int oldX, int oldY, int oldZ)
-    {
-        var oldProxy = new BlockPiece
-        {
-            Id = piece.Id,
-            X = oldX,
-            Y = oldY,
-            Z = oldZ,
-            Shape = piece.Shape,
-            ColorHex = piece.ColorHex,
-            RotationY = piece.RotationY,
-            FlipHorizontal = piece.FlipHorizontal,
-            FlipVertical = piece.FlipVertical
-        };
-        RemovePiece(oldProxy);
-        SetPiece(piece, overwrite: true);
-    }
-
     public BlockData[] CreateRenderSnapshot(bool fullRebuild, HashSet<int>? dirtyChunks, int gridSize)
     {
         if (fullRebuild || dirtyChunks is null || dirtyChunks.Count == 0)

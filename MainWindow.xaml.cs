@@ -322,17 +322,66 @@ public partial class MainWindow : Window
         VerifyCellStoresAgree(oldX, oldY, oldZ);
     }
 
-    private void MovePieceInternal(BlockPiece piece, int dx, int dy, int dz)
+    private void MovePiecesInternal(Guid[] ids, int dx, int dy, int dz)
     {
-        int oldX = piece.X, oldY = piece.Y, oldZ = piece.Z;
-        _spatialGrid.Remove(piece);
-        piece.X += dx;
-        piece.Y += dy;
-        piece.Z += dz;
-        _world.MovePiece(piece, oldX, oldY, oldZ);
-        _spatialGrid.TryAdd(piece);
-        VerifyCellStoresAgree(oldX, oldY, oldZ);
-        VerifyCellStoresAgree(piece.X, piece.Y, piece.Z);
+        if (ids.Length == 0 || (dx == 0 && dy == 0 && dz == 0))
+            return;
+
+        // Move as one transaction across the occupancy stores.
+        // A multi-block selection is allowed to move into its own old cells
+        // (for example a 1-cell shift, rotation-like manual edits, or swaps through undo/redo).
+        // Moving piece-by-piece would temporarily leave the destination occupied by
+        // another selected block and could desynchronise VoxelWorld/SpatialGridIndex.
+        var moving = new List<BlockPiece>(ids.Length);
+        for (int i = 0; i < ids.Length; i++)
+        {
+            BlockPiece? piece = FindPiece(ids[i]);
+            if (piece is not null)
+                moving.Add(piece);
+        }
+
+        if (moving.Count == 0)
+            return;
+
+        int count = moving.Count;
+        int[] oldX = new int[count];
+        int[] oldY = new int[count];
+        int[] oldZ = new int[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            BlockPiece piece = moving[i];
+            oldX[i] = piece.X;
+            oldY[i] = piece.Y;
+            oldZ[i] = piece.Z;
+
+            _world.RemovePiece(piece);
+            _spatialGrid.Remove(piece);
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            BlockPiece piece = moving[i];
+            piece.X = oldX[i] + dx;
+            piece.Y = oldY[i] + dy;
+            piece.Z = oldZ[i] + dz;
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            BlockPiece piece = moving[i];
+            _world.SetPiece(piece);
+            bool addedToSpatialIndex = _spatialGrid.TryAdd(piece);
+            Debug.Assert(addedToSpatialIndex,
+                $"SpatialGridIndex rejected moved block at ({piece.X}, {piece.Y}, {piece.Z}). Move validation should have prevented this.");
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            BlockPiece piece = moving[i];
+            VerifyCellStoresAgree(oldX[i], oldY[i], oldZ[i]);
+            VerifyCellStoresAgree(piece.X, piece.Y, piece.Z);
+        }
     }
 
     [Conditional("DEBUG")]
@@ -419,12 +468,7 @@ public partial class MainWindow : Window
 
         private void Move(int dx, int dy, int dz)
         {
-            for (int i = 0; i < _ids.Length; i++)
-            {
-                var piece = _owner.FindPiece(_ids[i]);
-                if (piece is null) continue;
-                _owner.MovePieceInternal(piece, dx, dy, dz);
-            }
+            _owner.MovePiecesInternal(_ids, dx, dy, dz);
         }
     }
 
