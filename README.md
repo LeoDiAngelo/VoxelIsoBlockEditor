@@ -143,8 +143,8 @@ Current pipeline:
 
 The project supports two main scene-source paths:
 
-- **Sparse editor scene** — normal authored block models.
-- **Packed full-grid scene** — procedural 256³ surface/stress-test mode with sparse overlays and deleted-cell/cavity handling.
+- **Sparse editor scene** - normal authored block models.
+- **Packed full-grid scene** - procedural 256³ surface/stress-test mode with sparse overlays and deleted-cell/cavity handling.
 
 ---
 
