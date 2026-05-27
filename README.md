@@ -206,7 +206,6 @@ rendering performance inside a standard desktop application window.
 - Move editor commands out of MainWindow into focused services/commands.
 - Split VoxelEditorControl into scene, input, picking and rendering coordination.
 - Add unit tests for CoordinateHelper, chunk dirty expansion, greedy meshing and multi-block move transactions.
-- Add GPU instancing for sparse overlays, selection previews and brush/ghost blocks.
 - Keep chunked greedy meshing as the primary rendering path for dense or mostly static voxel worlds.
 - Add GPU instancing for sparse overlays, selection previews, brush previews, and ghost blocks.
 - Investigate a reusable WPF/MonoGame viewport-hosting SDK based on the current editor viewport implementation.
