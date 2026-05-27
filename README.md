@@ -200,13 +200,16 @@ rendering performance inside a standard desktop application window.
 
 ---
 
-## Suggested next steps
+## Some suggested next steps
 
-Good future improvements before a larger public release:
-
-- Add unit tests for `CoordinateHelper`, chunk neighbour expansion and mesh generation.
 - Consider moving renderer components into a dedicated namespace/folder structure.
-- And other things.
+- Extract WPF/MonoGame viewport hosting into a reusable SDK layer.
+- Move editor commands out of MainWindow into focused services/commands.
+- Split VoxelEditorControl into scene, input, picking and rendering coordination.
+- Add unit tests for CoordinateHelper, chunk dirty expansion, greedy meshing and multi-block move transactions.
+- Add GPU instancing for sparse overlays, selection previews and brush/ghost blocks.
+- Keep chunked greedy meshing as the primary rendering path for dense or mostly static voxel worlds.
+- Add GPU instancing for sparse overlays, selection previews, brush previews, and ghost blocks.
 
 ---
 
