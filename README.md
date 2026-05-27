@@ -402,7 +402,7 @@ public void Draw(
 }
 ```
 
-For the 256³ stress test (16,777,216 blocks), the camera-facing surface filter combined with frustum culling reduces 512 total chunks to a fraction of the total draw calls depending on camera angle.. The chunk list is a plain `List<RenderChunk>` with no LINQ, no allocation, and sequential cache-friendly iteration.
+For the 256³ stress test (16,777,216 blocks), the camera-facing surface filter combined with frustum culling reduces 512 total chunks to a fraction of the total draw calls depending on camera angle. The chunk list is a plain `List<RenderChunk>` with no LINQ, no allocation, and sequential cache-friendly iteration.
 
 ## The concurrency contract
 
