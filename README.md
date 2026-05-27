@@ -486,7 +486,7 @@ private void DisposeEditorResources()
 
 ## Conclusion
 
-The `RenderChunkStore` and `ChunkBuildScheduler` split works because each class owns exactly one concern. GPU buffers never wait on CPU builds. CPU builds never block the draw thread. Scene boundaries are hard — no stale geometry can survive a scene switch.
+The `RenderChunkStore` and `ChunkBuildScheduler` split works because each class owns exactly one concern. GPU buffers never wait on CPU builds. CPU builds never block the draw thread. Scene boundaries are hard, no stale geometry can survive a scene switch.
 
 
 ## License
