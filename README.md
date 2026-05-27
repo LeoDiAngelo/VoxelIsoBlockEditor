@@ -206,8 +206,286 @@ Good future improvements before a larger public release:
 
 - Add unit tests for `CoordinateHelper`, chunk neighbour expansion and mesh generation.
 - Consider moving renderer components into a dedicated namespace/folder structure.
+- And other things.
 
 ---
+
+## Article ##
+
+# Building a High-Performance Voxel Editor with WPF + MonoGame: RenderChunkStore and the GPU Buffer Pipeline
+
+**By Lennart Svensson**
+*Voxel Iso Block Editor — github.com/LeoDiAngelo/VoxelIsoBlockEditor*
+
+## The problem nobody talks about
+
+Most articles about MonoGame focus on games. But what happens when you need a *tool* — a real desktop editor with a WPF UI, property panels, undo/redo, and a 3D viewport that renders 16 million voxels at 60 FPS without dropping a frame when the user edits?
+
+The answer isn't obvious. The WPF+MonoGame combination is famously hostile: flickering, input focus fights, DPI scaling bugs, and a frame cadence that isn't yours to control. Most attempts fall apart above a few thousand blocks.
+
+This article documents how `RenderChunkStore` solves the GPU buffer lifetime problem specifically in a `WpfGame` host and why getting it right is what separates a performant editor from one that stutters.
+
+## Architecture overview
+
+The renderer is split into three focused components:
+
+```
+ChunkBuildScheduler    owns background build concurrency
+ChunkMeshBuilder       owns CPU mesh generation (greedy meshing)
+RenderChunkStore       owns GPU buffer lifetime and draw calls
+```
+
+`ChunkedVoxelRenderer` coordinates them. `VoxelEditorControl` (the `WpfGame` subclass) drives the frame loop.
+
+The rule that makes everything work: **`Draw()` never builds meshes. CPU mesh work never touches GPU state.**
+
+## Why RenderChunkStore exists
+
+In a standard game you might manage vertex buffers inline: build a mesh, upload it, draw it, done. In an editor with async background building, this falls apart immediately:
+
+1. The user edits a block
+2. A background task starts building the new mesh
+3. The UI thread keeps drawing the old mesh
+4. The background task finishes. When is it safe to upload?
+5. The user edits again before step 4 completes
+
+You need a store that owns GPU buffer lifetime independently of the CPU build pipeline. That's `RenderChunkStore`.
+
+```csharp
+internal sealed class RenderChunkStore : IDisposable
+{
+    private readonly List<RenderChunk> _chunks = new(512);
+    private readonly Dictionary<int, RenderChunk> _chunkMap = new(512);
+    // ...
+}
+```
+
+The `List<RenderChunk>` is the stable draw list, iterated every frame. The `Dictionary<int, RenderChunk>` is the lookup map, used only when applying build results. They are separate because draw performance depends on cache-friendly sequential iteration, not dictionary overhead.
+
+## Applying build results correctly
+
+When a background build completes, `ApplyBuildResult` uploads the new geometry:
+
+```csharp
+public RenderChunkStoreStats ApplyBuildResult(
+    GraphicsDevice graphicsDevice, BuildResult result)
+{
+    var rebuiltKeys = new HashSet<int>(result.RebuiltChunkKeys.Count);
+    for (int i = 0; i < result.RebuiltChunkKeys.Count; i++)
+        rebuiltKeys.Add(result.RebuiltChunkKeys[i]);
+
+    var liveMeshKeys = new HashSet<int>(result.Chunks.Count);
+    for (int i = 0; i < result.Chunks.Count; i++)
+    {
+        ChunkMeshData data = result.Chunks[i];
+        liveMeshKeys.Add(data.Key);
+
+        if (!_chunkMap.TryGetValue(data.Key, out RenderChunk? chunk))
+        {
+            chunk = new RenderChunk(data.Cx, data.Cy, data.Cz);
+            _chunkMap.Add(data.Key, chunk);
+            _chunks.Add(chunk);
+        }
+
+        chunk.ReplaceBuffer(graphicsDevice, data.Vertices);
+        chunk.Bounds = data.Bounds;
+        chunk.SurfaceMask = data.SurfaceMask;
+        chunk.PrimitiveCount = data.Vertices.Length / 3;
+    }
+
+    // Partial rebuild: only remove chunks that were rebuilt AND are now empty.
+    // Full rebuild: remove any chunk not in the new result.
+    for (int i = _chunks.Count - 1; i >= 0; i--)
+    {
+        RenderChunk chunk = _chunks[i];
+        int key = CoordinateHelper.ChunkKey(chunk.Cx, chunk.Cy, chunk.Cz);
+        bool remove = result.FullRebuild
+            ? !liveMeshKeys.Contains(key)
+            : rebuiltKeys.Contains(key) && !liveMeshKeys.Contains(key);
+        if (!remove) continue;
+
+        chunk.Dispose();
+        _chunks.RemoveAt(i);
+        _chunkMap.Remove(key);
+    }
+
+    return CalculateStats();
+}
+```
+
+The partial rebuild logic is critical. For a small edit, the user places one block, and only the affected chunks and their neighbours are rebuilt. The removal condition `rebuiltKeys.Contains(key) && !liveMeshKeys.Contains(key)` ensures only chunks that were actually rebuilt and came back empty get removed. Chunks that were not part of this build are untouched.
+
+For a full rebuild (scene switch, stress test), the simpler `!liveMeshKeys.Contains(key)` removes anything not in the new result.
+
+## GPU buffer lifetime: the DynamicVertexBuffer strategy
+
+Each `RenderChunk` owns a `DynamicVertexBuffer`:
+
+```csharp
+public void ReplaceBuffer(GraphicsDevice graphicsDevice, VertexPositionColor[] vertices)
+{
+    VertexCount = vertices.Length;
+    PrimitiveCount = vertices.Length / 3;
+
+    if (VertexBuffer is null || BufferCapacity < vertices.Length)
+    {
+        VertexBuffer?.Dispose();
+        BufferCapacity = Math.Max(vertices.Length, BufferCapacity * 2);
+        VertexBuffer = new DynamicVertexBuffer(
+            graphicsDevice,
+            VertexPositionColor.VertexDeclaration,
+            BufferCapacity,
+            BufferUsage.WriteOnly);
+    }
+
+    VertexBuffer.SetData(
+        0,
+        vertices,
+        0,
+        vertices.Length,
+        VertexPositionColor.VertexDeclaration.VertexStride,
+        SetDataOptions.Discard);
+}
+```
+
+Two decisions here that matter.
+
+**Capacity doubling.** `BufferCapacity = Math.Max(vertices.Length, BufferCapacity * 2)` means a chunk that grows gradually does not reallocate on every edit. A chunk that shrinks keeps its existing buffer with no reallocation and no GPU stall.
+
+**`SetDataOptions.Discard`.** This tells the DirectX driver it does not need to preserve the old buffer contents before overwriting. Without it, the driver may insert a pipeline stall to finish reading from the buffer before the CPU writes new data. In a WPF host where the compositor and MonoGame share the same thread budget, those stalls compound quickly.
+
+## The draw loop
+
+```csharp
+public void Draw(
+    GraphicsDevice graphicsDevice,
+    BasicEffect effect,
+    BoundingFrustum frustum,
+    bool enableFrustumCulling,
+    byte surfaceFilterMask,
+    bool useSurfaceFilter,
+    out int visibleChunks,
+    out int drawCalls)
+{
+    visibleChunks = 0;
+    drawCalls = 0;
+
+    for (int i = 0; i < _chunks.Count; i++)
+    {
+        RenderChunk chunk = _chunks[i];
+        if (chunk.VertexBuffer is null || chunk.PrimitiveCount <= 0)
+            continue;
+
+        // Camera-facing surface filter: skip chunks whose visible surfaces
+        // don't face the camera. For an isometric view this eliminates roughly
+        // half the chunks with zero geometry cost.
+        if (useSurfaceFilter &&
+            chunk.SurfaceMask != 0 &&
+            (chunk.SurfaceMask & surfaceFilterMask) == 0)
+            continue;
+
+        if (enableFrustumCulling &&
+            frustum.Contains(chunk.Bounds) == ContainmentType.Disjoint)
+            continue;
+
+        visibleChunks++;
+        graphicsDevice.SetVertexBuffer(chunk.VertexBuffer);
+
+        for (int p = 0; p < effect.CurrentTechnique.Passes.Count; p++)
+        {
+            effect.CurrentTechnique.Passes[p].Apply();
+            graphicsDevice.DrawPrimitives(
+                PrimitiveType.TriangleList, 0, chunk.PrimitiveCount);
+            drawCalls++;
+        }
+    }
+}
+```
+
+For the 256³ stress test (16,777,216 blocks), the camera-facing surface filter combined with frustum culling reduces 512 total chunks to a fraction of the total draw calls depending on camera angle.. The chunk list is a plain `List<RenderChunk>` with no LINQ, no allocation, and sequential cache-friendly iteration.
+
+## The concurrency contract
+
+`RenderChunkStore` is always accessed from the MonoGame/UI thread: `ApplyBuildResult` in `Update()` and `Draw()` in `Draw()`. Background builds produce `BuildResult` objects on worker threads and hand them off via `ChunkBuildScheduler`. The store never touches CPU build state. The build pipeline never touches GPU state.
+
+`ChunkBuildScheduler` enforces this with a triple guard:
+
+```csharp
+private int _buildRunning;   // Interlocked, atomic build gate
+private int _buildSerial;    // Incremented on every new build start
+private long _sceneId;       // Incremented on every scene boundary
+```
+
+A worker's result is only accepted if all three still match at publication time. Stale results from cancelled builds can never enter the GPU pipeline.
+
+```csharp
+private bool TryPublish(BuildResult result, CancellationToken token)
+{
+    if (token.IsCancellationRequested)
+        return false;
+
+    lock (_sync)
+    {
+        if (token.IsCancellationRequested || result.SceneId != _sceneId)
+            return false;
+
+        if (_pendingResult is not null)
+        {
+            if (result.Generation < _pendingResult.Generation)
+                return false;
+            _pendingResult.ClearTransientMeshData();
+        }
+
+        _pendingResult = result;
+        return true;
+    }
+}
+```
+
+## Resource cleanup in WpfGame
+
+This is where most WPF+MonoGame implementations leak. `WpfGame` does not give you a `Game.Exit()` equivalent. Resources must be explicitly disposed when the control unloads.
+
+```csharp
+private void OnUnloaded(object sender, RoutedEventArgs e)
+{
+    ClearWorkspaceArrowKeyState();
+    DisposeEditorResources();
+}
+
+private void DisposeEditorResources()
+{
+    if (_resourcesDisposed) return;
+    _resourcesDisposed = true;
+
+    _inputHandler?.Detach();
+    _inputHandler = null;
+
+    if (_pieces is not null && _piecesChangedHandler is not null)
+    {
+        _pieces.CollectionChanged -= _piecesChangedHandler;
+        _piecesChangedHandler = null;
+    }
+
+    _chunkRenderer.Dispose();
+    _packedRenderer.Dispose();
+
+    _effect?.Dispose();
+    _effect = null;
+    _spriteBatch?.Dispose();
+    _spriteBatch = null;
+    _solidRasterizer.Dispose();
+    _wireRasterizer.Dispose();
+    _edgeRasterizer.Dispose();
+}
+```
+
+`InputHandler.Detach()` explicitly removes the WPF event handlers that were registered with `handledEventsToo: true`. Without this, the handlers stay alive and hold references to the control after it unloads.
+
+## Conclusion
+
+The `RenderChunkStore` and `ChunkBuildScheduler` split works because each class owns exactly one concern. GPU buffers never wait on CPU builds. CPU builds never block the draw thread. Scene boundaries are hard — no stale geometry can survive a scene switch.
+
 
 ## License
 
