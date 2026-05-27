@@ -219,7 +219,7 @@ Good future improvements before a larger public release:
 
 ## The problem nobody talks about
 
-Most articles about MonoGame focus on games. But what happens when you need a *tool* — a real desktop editor with a WPF UI, property panels, undo/redo, and a 3D viewport that renders 16 million voxels at 60 FPS without dropping a frame when the user edits?
+Most articles about MonoGame focus on games. But what happens when you need a *tool*, a real desktop editor with a WPF UI, property panels, undo/redo, and a 3D viewport that renders 16 million voxels at 60 FPS without dropping a frame when the user edits?
 
 The answer isn't obvious. The WPF+MonoGame combination is famously hostile: flickering, input focus fights, DPI scaling bugs, and a frame cadence that isn't yours to control. Most attempts fall apart above a few thousand blocks.
 
